@@ -1,6 +1,10 @@
+# Python environments
 .env
-.DS_Store
+.venv
 __pycache__/
+
+# MacOS system files
+.DS_Store
 
 # Logging
 wandb/
