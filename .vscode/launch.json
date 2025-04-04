@@ -12,15 +12,30 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Local debugging - Train model.",
+            "name": "Local debugging - Train model (with wandb)",
             "type": "debugpy",
             "request": "launch",
             "program": "grokking/scripts/train_grokk.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "args": [
-                "dataset.frac_train=0.5",
+                "dataset.frac_train=0.4",
             ],
+        },
+        {
+            "name": "Local debugging - Train model (without wandb)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "grokking/scripts/train_grokk.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "dataset.frac_train=0.4",
+                "wandb.use_wandb=false",
+            ],
+            "env": {
+                "WANDB_DISABLED": "true"
+            }
         }
     ]
 }
