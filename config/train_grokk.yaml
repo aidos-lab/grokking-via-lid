@@ -25,3 +25,11 @@ train:
 wandb:
   use_wandb: true
   wandb_project: grokking_replica
+
+hydra:
+  run:
+    dir: outputs/run/${hydra.job.name}/${now:%Y-%m-%d}/${now:%H-%M-%S}/
+  sweep:
+    dir: outputs/multirun/${hydra.job.name}/${now:%Y-%m-%d}/${now:%H-%M-%S}/
+    subdir: ${hydra.job.override_dirname}/
+  

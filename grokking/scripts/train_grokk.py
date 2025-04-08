@@ -1,13 +1,13 @@
 import hydra
 import torch
 import torch.nn as nn
-import wandb
 from omegaconf import DictConfig, OmegaConf
 from torch.optim import lr_scheduler
 from torch.utils import data
 from torch.utils.data import DataLoader, IterableDataset
 from tqdm.auto import tqdm
 
+import wandb
 from grokking.grokk_replica.datasets import AbstractDataset
 from grokking.grokk_replica.load_objs import load_item
 from grokking.grokk_replica.utils import combine_logs
