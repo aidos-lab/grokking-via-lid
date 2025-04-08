@@ -1,8 +1,10 @@
 # GROKKING: GENERALIZATION BEYOND OVERFITTING ON SMALL ALGORITHMIC DATASETS
 
-## Unofficial re-implementation of [this paper](https://mathai-iclr.github.io/papers/papers/MATHAI_29_paper.pdf) by Power et al.
+Unofficial re-implementation of [this paper](https://mathai-iclr.github.io/papers/papers/MATHAI_29_paper.pdf) by Power et al.
 
 Code written by Charlie Snell.
+
+## General setup
 
 1. Clone the repository, and move into the directory:
 
@@ -32,6 +34,17 @@ Python 3.12.9 (main, Mar 17 2025, 21:36:21) [Clang 20.1.0 ] on darwin
 Type "help", "copyright", "credits" or "license" for more information.
 >>> import grokking
 ```
+
+## Project-specific setup
+
+1. Set the correct environment variables used in the project config.
+Edit the script `grokking/scripts/setup_environment.sh` with the correct paths and run it once.
+
+```bash
+./grokking/scripts/setup_environment.sh
+```
+
+1. If required, e.g. when running jobs on the HHU Hilbert HPC cluster, set the correct environment variables in the `.env` file in the project root directory.
 
 ## Running the code
 
