@@ -1,0 +1,65 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Local - rsync from HHU Hilbert HPC to local - (small) - Full 'outputs' directory",
+            "command": "./grokking/scripts/hhu_hilbert/sync_data/rsync_selected_directories_from_hhu_hilbert.sh --folders 'outputs/'",
+            "type": "shell",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": false
+            }
+        },
+        // START Weights and Biases related tasks (wandb)
+        {
+            "label": "Local - rsync from HHU Hilbert HPC to local - (LARGE) - Full 'wandb' directory",
+            "command": "./grokking/scripts/hhu_hilbert/sync_data/rsync_selected_directories_from_hhu_hilbert.sh --folders 'wandb/'",
+            "type": "shell",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": false
+            }
+        },
+        {
+            "label": "wandb - sync offline wandb runs to wandb cloud",
+            "command": "grokking/scripts/sync_wandb_runs.sh",
+            "type": "shell",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": false
+            }
+        },
+        // END Weights and Biases related tasks (wandb)
+        {
+            "label": "run training script - train_grokk",
+            "command": "uv run train_grokk dataset.frac_train=0.4 wandb.use_wandb=false",
+            "type": "shell",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": false
+            }
+        },
+    ]
+}
