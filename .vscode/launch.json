@@ -12,15 +12,58 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Local debugging - Train model.",
+            "name": "Train model - Local debugging - with wandb",
             "type": "debugpy",
             "request": "launch",
             "program": "grokking/scripts/train_grokk.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "args": [
-                "dataset.frac_train=0.5",
+                "dataset.frac_train=0.4",
             ],
-        }
+        },
+        {
+            "name": "Train model - Local debugging - without wandb",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "grokking/scripts/train_grokk.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "dataset.frac_train=0.4",
+                "wandb.use_wandb=false",
+            ],
+            "env": {
+                "WANDB_DISABLED": "true"
+            }
+        },
+        {
+            "name": "Train model - HHU Hilbert HPC submission - ",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "grokking/scripts/train_grokk.py",
+            "console": "integratedTerminal",
+            "args": [
+                //    >> START: Hydra options
+                "--multirun",
+                "hydra/sweeper=basic",
+                // "hydra/launcher=basic", // <-- Use this for local submission
+                "hydra/launcher=hpc_submission", // <-- Use this for HHU Hilbert HPC submission
+                "hydra.launcher.queue=CUDA",
+                // "hydra.launcher.template=RTX6000",
+                "hydra.launcher.template=GTX1080",
+                "hydra.launcher.memory=32",
+                "hydra.launcher.ncpus=4",
+                "hydra.launcher.ngpus=1",
+                "hydra.launcher.walltime=05:00:00", // <-- The pipeline run for regular embeddings should only take a few minutes.
+                //    >> END: Hydra options
+                //
+                "dataset.frac_train=0.4",
+                "wandb.use_wandb=false",
+            ],
+            "env": {
+                "PYTORCH_ENABLE_MPS_FALLBACK": "1"
+            }
+        },
     ]
 }

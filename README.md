@@ -1,8 +1,10 @@
 # GROKKING: GENERALIZATION BEYOND OVERFITTING ON SMALL ALGORITHMIC DATASETS
 
-## Unofficial re-implementation of [this paper](https://mathai-iclr.github.io/papers/papers/MATHAI_29_paper.pdf) by Power et al.
+Unofficial re-implementation of [this paper](https://mathai-iclr.github.io/papers/papers/MATHAI_29_paper.pdf) by Power et al.
 
 Code written by Charlie Snell.
+
+## General setup
 
 1. Clone the repository, and move into the directory:
 
@@ -33,6 +35,19 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> import grokking
 ```
 
+## Project-specific setup
+
+1. Set the correct environment variables used in the project config.
+Edit the script `grokking/scripts/setup_environment.sh` with the correct paths and run it once.
+
+```bash
+./grokking/scripts/setup_environment.sh
+```
+
+1. If required, e.g. when running jobs on the HHU Hilbert HPC cluster, set the correct environment variables in the `.env` file in the project root directory.
+
+1. For setting up the repository to support job submissions to the HHU Hilbert HPC, follow the instructions here: [https://github.com/carelvniekerk/Hydra-HPC-Launcher].
+
 ## Running the code
 
 To roughly re-create Figure 1 in the paper run:
@@ -45,8 +60,15 @@ Running the above command should give curves like this.
 
 ![Training and validation accuracy](grokk.png)
 
-Try different operations or learning / architectural hparams by modifying configurations in the `config/` directory. 
-I use [Hydra](https://hydra.cc/docs/intro) to handle the configs (see their documentation to learn how to change configs in the commandline etc...).
+Some `uv run` commands are defined in the `pyproject.toml` file, which can be used as entry points to run the code.
+These also accept command line arguments, so for example, for running the training with a larger training fraction and without wandb, you can run:
 
-Training uses [Weights And Biases](https://wandb.ai/home) by default to generate plots in realtime. 
+```bash
+uv run train_grokk dataset.frac_train=0.5 wandb.use_wandb=false
+```
+
+Try different operations or learning / architectural hparams by modifying configurations in the `config/` directory.
+This package uses [Hydra](https://hydra.cc/docs/intro) to handle the configs (see their documentation to learn how to change configs in the commandline etc ...).
+
+Training uses [Weights And Biases](https://wandb.ai/home) by default to generate plots in realtime.
 If you would not like to use wandb, just set `wandb.use_wandb=False` in `config/train_grokk.yaml` or as an argument when calling `train_grokk.py`

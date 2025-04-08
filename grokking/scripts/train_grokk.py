@@ -1,13 +1,13 @@
 import hydra
 import torch
 import torch.nn as nn
-import wandb
 from omegaconf import DictConfig, OmegaConf
 from torch.optim import lr_scheduler
 from torch.utils import data
 from torch.utils.data import DataLoader, IterableDataset
 from tqdm.auto import tqdm
 
+import wandb
 from grokking.grokk_replica.datasets import AbstractDataset
 from grokking.grokk_replica.load_objs import load_item
 from grokking.grokk_replica.utils import combine_logs
@@ -48,21 +48,15 @@ def train(config):
     val_data = GroupDataset(dataset, "val")
     model = load_item(config["model"], dataset.n_vocab, dataset.n_out, device)
     model.train()
-    train_dataloader = DataLoader(
-        train_data, num_workers=train_cfg["num_workers"], batch_size=train_cfg["bsize"]
-    )
-    val_dataloader = DataLoader(
-        val_data, num_workers=train_cfg["num_workers"], batch_size=train_cfg["bsize"]
-    )
+    train_dataloader = DataLoader(train_data, num_workers=train_cfg["num_workers"], batch_size=train_cfg["bsize"])
+    val_dataloader = DataLoader(val_data, num_workers=train_cfg["num_workers"], batch_size=train_cfg["bsize"])
     optim = torch.optim.AdamW(
         model.parameters(),
         lr=train_cfg["lr"],
         weight_decay=train_cfg["weight_decay"],
         betas=train_cfg["betas"],
     )
-    lr_schedule = torch.optim.lr_scheduler.LambdaLR(
-        optim, lr_lambda=lambda s: min(s / train_cfg["warmup_steps"], 1)
-    )
+    lr_schedule = torch.optim.lr_scheduler.LambdaLR(optim, lr_lambda=lambda s: min(s / train_cfg["warmup_steps"], 1))
     step = 0
     for x, y in tqdm(train_dataloader):
         loss, logs = model.get_loss(x.to(device), y.to(device))
@@ -94,7 +88,11 @@ def train(config):
             break
 
 
-@hydra.main(config_path="../../config", config_name="train_grokk")
+@hydra.main(
+    config_path="../../config",
+    config_name="train_grokk",
+    version_base="1.3",
+)
 def main(cfg: DictConfig):
     cfg = OmegaConf.to_container(cfg)
     train(cfg)

@@ -11,3 +11,6 @@ wandb/
 
 # Output directories
 outputs/
+
+# Hydra files
+hydra_plugins/
