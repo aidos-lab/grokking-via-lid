@@ -23,6 +23,9 @@ train:
   max_steps: 1e6
   preferred_torch_backend: auto
 
+topological_analysis:
+  compute_estimates_every: 50
+
 wandb:
   use_wandb: true
   wandb_project: grokking_replica

@@ -123,6 +123,7 @@ def train(
 
     train_cfg = config["train"]
     wandb_cfg = config["wandb"]
+    topological_analysis_cfg: dict = config["topological_analysis"]
 
     if wandb_cfg["use_wandb"]:
         wandb.init(
@@ -200,7 +201,7 @@ def train(
         x,
         y,
     ) in tqdm(train_dataloader):
-        training_logs = do_training_step(
+        training_logs: dict = do_training_step(
             model=model,
             optim=optim,
             lr_schedule=lr_schedule,
@@ -212,7 +213,7 @@ def train(
         # # # #
         # Evaluation step
         if (step + 1) % train_cfg["eval_every"] == 0:
-            all_val_logs = do_eval_step(
+            all_val_logs: list[dict] = do_eval_step(
                 model=model,
                 val_dataloader=val_dataloader,
                 train_cfg=train_cfg,
@@ -238,6 +239,31 @@ def train(
                     data=out_log,
                 )
 
+        # # # #
+        # Embedding space analysis step
+        topological_analysis_compute_estimates_every = topological_analysis_cfg["compute_estimates_every"]
+
+        if topological_analysis_compute_estimates_every < 0:
+            logger.info(
+                msg="Skipping topological analysis step.",
+            )
+        elif (step + 1) % topological_analysis_compute_estimates_every == 0:
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"Running topological analysis for {step + 1 = } ...",  # noqa: G004 - low overhead
+                )
+
+            logger.warning(
+                msg="@@@ This step is not implemented yet!",
+            )
+
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"Running topological analysis for {step + 1 = } DONE",  # noqa: G004 - low overhead
+                )
+
+        # # # #
+        # Finalize training loop step
         step += 1
 
         # Break condition
