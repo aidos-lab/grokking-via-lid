@@ -178,49 +178,62 @@ class Transformer(nn.Module):
 
     def forward(
         self,
-        x,
-        attn_mask,
-        past_kvs=None,
+        x: torch.Tensor,
+        attn_mask: torch.Tensor,
+        past_kvs: list | None = None,
     ) -> tuple[
         torch.Tensor,  # output
-        list[torch.Tensor],  # attns
+        list[torch.Tensor],  # attentions_over_layers_list
         list[tuple[torch.Tensor, torch.Tensor]],  # new_past_kvs
-        torch.Tensor,  # x
+        list[torch.Tensor],  # hidden_states_over_layers_list
     ]:
-        # x = (batch, time)
-        # attn_mask = (batch, query_time, key_time)
-        # past_kvs = list of past_kvs for each layer
+        # Note: The objects have the following shapes:
+        # > x = (batch, time)
+        # > attn_mask = (batch, query_time, key_time)
+        # > past_kvs = list of past_kvs for each layer
 
-        attns = []
+        attentions_over_layers_list: list = []
+        hidden_states_over_layers_list: list = []
+
         new_past_kvs = []
         initial_pos = 0
         if past_kvs is not None:
             initial_pos = past_kvs[0][0].shape[1]
-        assert initial_pos + x.shape[1] <= self.max_length, "sequence too long"
+
+        if initial_pos + x.shape[1] > self.max_length:
+            msg: str = f"sequence too long: {initial_pos + x.shape[1] = } > {self.max_length = }"
+            raise ValueError(
+                msg,
+            )
+
         x = self.dropout(
             self.embeddings(x) * math.sqrt(self.hidden_dim)
-            + self.positions.weight[initial_pos : initial_pos + x.shape[1], :]
+            + self.positions.weight[initial_pos : initial_pos + x.shape[1], :],
         )
         step = 0
         for _ in range(self.block_repeats):
             for i in range(len(self.transformer_blocks)):
                 x, attn, past_kv = self.transformer_blocks[i](
-                    x, attn_mask, past_kv=past_kvs[step] if past_kvs is not None else None
+                    x,
+                    attn_mask,
+                    past_kv=past_kvs[step] if past_kvs is not None else None,
                 )
-                attns.append(attn)
+                attentions_over_layers_list.append(attn)
+                hidden_states_over_layers_list.append(x)
+
                 new_past_kvs.append(past_kv)
                 step += 1
+
         if self.pre_norm:
             x = self.norm(x)
 
         # `x` now corresponds to the last hidden state of the last block
-        # We will output the last hidden state so that it can be used for further tasks.
 
         return (
             self.output(x),
-            attns,
+            attentions_over_layers_list,
             new_past_kvs,
-            x,
+            hidden_states_over_layers_list,
         )
 
 
