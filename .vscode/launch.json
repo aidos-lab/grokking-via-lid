@@ -20,6 +20,7 @@
             "cwd": "${workspaceFolder}",
             "args": [
                 "dataset.frac_train=0.4",
+                "wandb.wandb_project=grokking_replica_debugging",
             ],
         },
         {
@@ -60,6 +61,7 @@
                 //
                 "dataset.frac_train=0.4",
                 "wandb.use_wandb=false",
+                "wandb.wandb_project=grokking_replica_hilbert_runs",
             ],
             "env": {
                 "PYTORCH_ENABLE_MPS_FALLBACK": "1"

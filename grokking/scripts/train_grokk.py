@@ -1,3 +1,5 @@
+from typing import Self
+
 import hydra
 import torch
 import torch.nn as nn
@@ -15,11 +17,11 @@ from grokking.grokk_replica.utils import combine_logs
 
 class GroupDataset(IterableDataset):
     def __init__(self, dataset: AbstractDataset, split: str):
-        super(GroupDataset, self).__init__()
+        super().__init__()
         assert split in {"train", "val"}
         self.dataset = dataset
         self.split = split
-        self.fetch_f = None
+
         if self.split == "train":
             self.fetch_f = self.dataset.fetch_train_example
         elif self.split == "val":
@@ -27,10 +29,15 @@ class GroupDataset(IterableDataset):
         else:
             raise NotImplementedError
 
-    def __iter__(self):
+    def __iter__(self) -> Self:
         return self
 
-    def __next__(self):
+    def __next__(
+        self,
+    ) -> tuple[
+        torch.Tensor,
+        torch.Tensor,
+    ]:
         x, y, _ = self.fetch_f()
         return torch.tensor(x), torch.tensor(y)
 
@@ -40,7 +47,10 @@ def train(config):
     train_cfg = config["train"]
     wandb_cfg = config["wandb"]
     if wandb_cfg["use_wandb"]:
-        wandb.init(project=wandb_cfg["wandb_project"], config=config)
+        wandb.init(
+            project=wandb_cfg["wandb_project"],
+            config=config,
+        )
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dataset = load_item(config["dataset"])
@@ -93,9 +103,16 @@ def train(config):
     config_name="train_grokk",
     version_base="1.3",
 )
-def main(cfg: DictConfig):
-    cfg = OmegaConf.to_container(cfg)
-    train(cfg)
+def main(
+    cfg: DictConfig,
+) -> None:
+    """Train the model."""
+    cfg_as_container = OmegaConf.to_container(
+        cfg=cfg,
+    )
+    train(
+        config=cfg_as_container,
+    )
 
 
 if __name__ == "__main__":
