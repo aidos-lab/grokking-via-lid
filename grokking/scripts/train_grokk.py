@@ -200,38 +200,30 @@ def train(
         x,
         y,
     ) in tqdm(train_dataloader):
-        (
-            loss,
-            logs,
-        ) = model.get_loss(
-            x.to(device),
-            y.to(device),
+        training_logs = do_training_step(
+            model=model,
+            optim=optim,
+            lr_schedule=lr_schedule,
+            x=x,
+            y=y,
+            device=device,
         )
-        optim.zero_grad()
-        loss.backward()
-        optim.step()
-        lr_schedule.step()
 
         # # # #
         # Evaluation step
         if (step + 1) % train_cfg["eval_every"] == 0:
-            model.eval()
-            with torch.no_grad():
-                all_val_logs = []
-                for i, (val_x, val_y) in tqdm(enumerate(val_dataloader)):
-                    if i >= train_cfg["eval_batches"]:
-                        break
-                    (
-                        _,
-                        val_logs,
-                    ) = model.get_loss(
-                        val_x.to(device),
-                        val_y.to(device),
-                    )
-                    all_val_logs.append(val_logs)
-            out_log = {
-                "val": combine_logs(all_val_logs),
-                "train": combine_logs([logs]),
+            all_val_logs = do_eval_step(
+                model=model,
+                val_dataloader=val_dataloader,
+                train_cfg=train_cfg,
+                device=device,
+                verbosity=verbosity,
+                logger=logger,
+            )
+
+            out_log: dict = {
+                "val": combine_logs(logs=all_val_logs),
+                "train": combine_logs(logs=[training_logs]),
                 "step": (step + 1),
                 "lr": float(lr_schedule.get_last_lr()[0]),
             }
@@ -245,13 +237,64 @@ def train(
                 wandb.log(
                     data=out_log,
                 )
-            model.train()
 
         step += 1
 
         # Break condition
         if train_cfg["max_steps"] is not None and step >= train_cfg["max_steps"]:
             break
+
+
+def do_eval_step(
+    model: GrokkModel,
+    val_dataloader: DataLoader,
+    train_cfg: dict,
+    device: torch.device,
+    verbosity: Verbosity = Verbosity.NORMAL,
+    logger: logging.Logger = default_logger,
+) -> list[dict]:
+    model.eval()
+
+    with torch.no_grad():
+        all_val_logs = []
+        for i, (val_x, val_y) in tqdm(enumerate(val_dataloader)):
+            if i >= train_cfg["eval_batches"]:
+                break
+            (
+                _,
+                val_logs,
+            ) = model.get_loss(
+                val_x.to(device),
+                val_y.to(device),
+            )
+            all_val_logs.append(val_logs)
+
+    model.train()
+
+    return all_val_logs
+
+
+def do_training_step(
+    model: GrokkModel,
+    optim: torch.optim.Optimizer,
+    lr_schedule: torch.optim.lr_scheduler.LambdaLR,
+    x: torch.Tensor,
+    y: torch.Tensor,
+    device: torch.device,
+) -> dict:
+    (
+        loss,
+        logs,
+    ) = model.get_loss(
+        x=x.to(device),
+        y=y.to(device),
+    )
+    optim.zero_grad()
+    loss.backward()
+    optim.step()
+    lr_schedule.step()
+
+    return logs
 
 
 @hydra.main(
