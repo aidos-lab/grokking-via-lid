@@ -24,6 +24,7 @@
 
 """Training script for Grokking models."""
 
+from dataclasses import dataclass
 import logging
 import os
 import pprint
@@ -110,6 +111,32 @@ class GroupDataset(IterableDataset):
         )
 
 
+@dataclass
+class DatasetForTopologicalAnalysis:
+    """Dataset wrapper for topological analysis."""
+
+    dataset: GroupDataset
+    split: str
+    dataloader: DataLoader
+
+    def __init__(
+        self,
+        group_dataset: GroupDataset,
+        split: str,
+        train_cfg: dict,
+    ) -> None:
+        """Initialize DatasetForTopologicalAnalysis with dataset, split, and dataloader."""
+        self.dataset = group_dataset
+        self.split = split
+
+        self.dataloader = DataLoader(
+            dataset=group_dataset,
+            batch_size=train_cfg["bsize"],
+            shuffle=False,
+            num_workers=train_cfg["num_workers"],
+        )
+
+
 def train(
     config: dict,
     verbosity: Verbosity = Verbosity.NORMAL,
@@ -138,7 +165,7 @@ def train(
     )
 
     # # # # # # # #
-    # Dataset and Dataloader
+    # Datasets and Dataloaders
 
     dataset: AbstractDataset = load_item(
         config["dataset"],
@@ -151,6 +178,26 @@ def train(
         dataset=dataset,
         split="val",
     )
+
+    # Notes:
+    # - We create new instances of the datasets for the topological analysis,
+    #   so that we can consume new batches of data for each analysis step.
+    #   This is important because the datasets are iterable, so we need to
+    #   create new instances to get new batches.
+    datasets_for_topological_analysis_list: list[DatasetForTopologicalAnalysis] = [
+        DatasetForTopologicalAnalysis(
+            group_dataset=GroupDataset(
+                dataset=dataset,
+                split=split,
+            ),
+            split=split,
+            train_cfg=train_cfg,
+        )
+        for split in [
+            "train",
+            "val",
+        ]
+    ]
 
     # Notes:
     # - In the current setup without shuffling, the dataloaders will not introduce any non-determinism.
@@ -196,11 +243,12 @@ def train(
 
     # # # #
     # Training loop
-    step = 0
-    for (
+    for step, (
         x,
         y,
-    ) in tqdm(train_dataloader):
+    ) in enumerate(
+        iterable=tqdm(train_dataloader),
+    ):
         training_logs: dict = do_training_step(
             model=model,
             optim=optim,
@@ -253,9 +301,94 @@ def train(
                     msg=f"Running topological analysis for {step + 1 = } ...",  # noqa: G004 - low overhead
                 )
 
-            logger.warning(
-                msg="@@@ This step is not implemented yet!",
-            )
+            model.eval()
+
+            with torch.no_grad():
+                for dataset_for_topological_analysis in datasets_for_topological_analysis_list:
+                    if verbosity >= Verbosity.NORMAL:
+                        logger.info(
+                            msg=f"Running topological analysis for {dataset_for_topological_analysis.split = } ...",  # noqa: G004 - low overhead
+                        )
+
+                    # This list will accumulate the hidden states
+                    selected_hidden_states_list = []
+                    selected_input_x_list = []
+
+                    for topo_batch_index, (
+                        topo_input_x,
+                        topo_input_y,
+                    ) in enumerate(
+                        iterable=tqdm(
+                            dataset_for_topological_analysis.dataloader,
+                        ),
+                    ):
+                        # Break condition is necessary, because otherwise we would keep looping over the dataset and never stop
+                        if topo_batch_index >= topological_analysis_cfg["max_number_of_topo_batches"]:
+                            break
+
+                        (
+                            _,
+                            _,
+                            hidden_states_over_layers_list,
+                        ) = model.forward(
+                            x=topo_input_x.to(device),
+                        )
+
+                        # Take the hidden states of the last layer.
+                        # > hidden_states_single_layer.shape = torch.Size([512, 4, 128])
+                        hidden_states_single_layer = hidden_states_over_layers_list[-1]
+
+                        # Currently, we are only interested in the hidden states of the operands,
+                        # i.e., we want to exclude the operation token "o" and the equality token "=":
+                        # Only select the 0th and 2nd token embeddings in the batch.
+                        # > only_operand_hidden_states.shape = torch.Size([512, 2, 128])
+                        only_operand_hidden_states = hidden_states_single_layer[
+                            :,
+                            [0, 2],
+                            :,
+                        ]
+
+                        # Move the hidden states to the CPU and convert them to a numpy array
+                        only_operand_hidden_states_np = only_operand_hidden_states.detach().cpu().numpy()
+                        # Make this into a list of all the 128-dimensional hidden states:
+                        # I.e., convert the shape from (512, 2, 128) to (512 * 2, 128)
+                        only_operand_hidden_states_reshaped_np = only_operand_hidden_states_np.reshape(
+                            -1,
+                            only_operand_hidden_states_np.shape[-1],
+                        )
+                        # Turn this into a list of 128-dimensional hidden states:
+                        only_operand_hidden_states_list = only_operand_hidden_states_reshaped_np.tolist()
+                        # Extend the list of hidden states with the new hidden states:
+                        selected_hidden_states_list.extend(only_operand_hidden_states_list)
+
+                        corresponding_input_x_np = (
+                            topo_input_x[
+                                :,
+                                [0, 2],
+                            ]
+                            .detach()
+                            .cpu()
+                            .numpy()
+                        ).reshape(
+                            -1,
+                        )
+                        # Extend the list of input x with the new input x:
+                        selected_input_x_list.extend(corresponding_input_x_np.tolist())
+
+                    # # # #
+                    # Analyse the extrated hidden states
+                    number_of_samples = topological_analysis_cfg["number_of_samples"]
+
+                    logger.warning(
+                        msg="@@@ The analysis is not fully implemented yet!",
+                    )
+                    # TODO: Implement the analysis here
+
+                    logger.info(
+                        msg=f"Running topological analysis for {dataset_for_topological_analysis.split = } ...",  # noqa: G004 - low overhead
+                    )
+
+            model.train()
 
             if verbosity >= Verbosity.NORMAL:
                 logger.info(
@@ -264,7 +397,6 @@ def train(
 
         # # # #
         # Finalize training loop step
-        step += 1
 
         # Break condition
         if train_cfg["max_steps"] is not None and step >= train_cfg["max_steps"]:
