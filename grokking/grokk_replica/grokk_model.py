@@ -52,21 +52,45 @@ class GrokkModel(nn.Module):
         self,
         x: torch.Tensor,
     ):
-        attn_mask = causal_attn_mask(x.shape[1]).unsqueeze(0).repeat(x.shape[0], 1, 1).to(self.device)
+        attn_mask = (
+            causal_attn_mask(x.shape[1])
+            .unsqueeze(0)
+            .repeat(x.shape[0], 1, 1)
+            .to(
+                self.device,
+            )
+        )
         (
             predictions,
             attns,
             _,
-            _,
+            hidden_states,
         ) = self.transformer.forward(
             x=x,
             attn_mask=attn_mask,
             past_kvs=None,
         )
-        return predictions, attns
+        return (
+            predictions,
+            attns,
+            hidden_states,
+        )
 
-    def get_loss(self, x, y):
-        predictions, attns = self(x)
+    def get_loss(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+    ) -> tuple[
+        torch.Tensor,
+        dict,
+    ]:
+        (
+            predictions,
+            attns,
+            _,
+        ) = self.forward(
+            x=x,
+        )
 
         loss = F.cross_entropy(predictions[:, -1, :], y)
         accuracy = (torch.argmax(predictions[:, -1, :], dim=-1) == y).float().mean()
@@ -75,12 +99,15 @@ class GrokkModel(nn.Module):
         )
         param_norm = parameter_norm(self)
 
-        return loss, {
-            "loss": (loss.item(), x.shape[0]),
-            "accuracy": (accuracy.item(), x.shape[0]),
-            "attn_entropy": (
-                attn_entropies,
-                len(attns) * x.shape[0] * (x.shape[1] - 1),
-            ),
-            "param_norm": (param_norm, 1),
-        }
+        return (
+            loss,
+            {
+                "loss": (loss.item(), x.shape[0]),
+                "accuracy": (accuracy.item(), x.shape[0]),
+                "attn_entropy": (
+                    attn_entropies,
+                    len(attns) * x.shape[0] * (x.shape[1] - 1),
+                ),
+                "param_norm": (param_norm, 1),
+            },
+        )

@@ -177,6 +177,11 @@ def train(
     )
     model.train()
 
+    if verbosity >= Verbosity.NORMAL:
+        logger.info(
+            msg=f"model:\n{model}",  # noqa: G004 - low overhead
+        )
+
     optim = torch.optim.AdamW(
         params=model.parameters(),
         lr=train_cfg["lr"],
