@@ -139,7 +139,7 @@ def train(
     # # # # # # # #
     # Dataset and Dataloader
 
-    dataset = load_item(
+    dataset: AbstractDataset = load_item(
         config["dataset"],
     )
     train_data = GroupDataset(
