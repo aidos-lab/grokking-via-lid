@@ -35,11 +35,12 @@ from grokking.grokk_replica.utils import causal_attn_mask, parameter_norm
 class GrokkModel(nn.Module):
     def __init__(
         self,
-        transformer_config,
-        vocab_size,
-        output_size,
-        device,
+        transformer_config: dict,
+        vocab_size: int,
+        output_size: int,
+        device: torch.device,
     ) -> None:
+        """Initialize the GrokkModel with a transformer."""
         super().__init__()
         self.transformer = Transformer(
             **transformer_config,
@@ -51,7 +52,11 @@ class GrokkModel(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-    ):
+    ) -> tuple[
+        torch.Tensor,
+        list[torch.Tensor],
+        list[torch.Tensor],
+    ]:
         attn_mask = (
             causal_attn_mask(x.shape[1])
             .unsqueeze(0)
@@ -62,9 +67,9 @@ class GrokkModel(nn.Module):
         )
         (
             predictions,
-            attns,
+            attentions_over_layers_list,
             _,
-            hidden_states,
+            hidden_states_over_layers_list,
         ) = self.transformer.forward(
             x=x,
             attn_mask=attn_mask,
@@ -72,8 +77,8 @@ class GrokkModel(nn.Module):
         )
         return (
             predictions,
-            attns,
-            hidden_states,
+            attentions_over_layers_list,
+            hidden_states_over_layers_list,
         )
 
     def get_loss(
