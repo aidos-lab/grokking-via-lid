@@ -37,6 +37,7 @@ from tqdm.auto import tqdm
 
 import wandb
 from grokking.grokk_replica.datasets import AbstractDataset
+from grokking.grokk_replica.grokk_model import GrokkModel
 from grokking.grokk_replica.load_objs import load_item
 from grokking.grokk_replica.utils import combine_logs
 from grokking.logging.create_and_configure_global_logger import create_and_configure_global_logger
@@ -168,7 +169,7 @@ def train(
     # # # #
     # Model
 
-    model = load_item(
+    model: GrokkModel = load_item(
         config["model"],
         dataset.n_vocab,
         dataset.n_out,
@@ -190,8 +191,14 @@ def train(
     # # # #
     # Training loop
     step = 0
-    for x, y in tqdm(train_dataloader):
-        loss, logs = model.get_loss(
+    for (
+        x,
+        y,
+    ) in tqdm(train_dataloader):
+        (
+            loss,
+            logs,
+        ) = model.get_loss(
             x.to(device),
             y.to(device),
         )

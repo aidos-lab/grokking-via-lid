@@ -48,9 +48,21 @@ class GrokkModel(nn.Module):
         )  # type: ignore - The transformer_config contains the necessary arguments for the Transformer class
         self.device = device
 
-    def forward(self, x):
+    def forward(
+        self,
+        x: torch.Tensor,
+    ):
         attn_mask = causal_attn_mask(x.shape[1]).unsqueeze(0).repeat(x.shape[0], 1, 1).to(self.device)
-        predictions, attns, _ = self.transformer(x, attn_mask)
+        (
+            predictions,
+            attns,
+            _,
+            _,
+        ) = self.transformer.forward(
+            x=x,
+            attn_mask=attn_mask,
+            past_kvs=None,
+        )
         return predictions, attns
 
     def get_loss(self, x, y):

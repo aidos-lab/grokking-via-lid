@@ -181,7 +181,12 @@ class Transformer(nn.Module):
         x,
         attn_mask,
         past_kvs=None,
-    ):
+    ) -> tuple[
+        torch.Tensor,  # output
+        list[torch.Tensor],  # attns
+        list[tuple[torch.Tensor, torch.Tensor]],  # new_past_kvs
+        torch.Tensor,  # x
+    ]:
         # x = (batch, time)
         # attn_mask = (batch, query_time, key_time)
         # past_kvs = list of past_kvs for each layer
@@ -207,7 +212,16 @@ class Transformer(nn.Module):
                 step += 1
         if self.pre_norm:
             x = self.norm(x)
-        return self.output(x), attns, new_past_kvs
+
+        # `x` now corresponds to the last hidden state of the last block
+        # We will output the last hidden state so that it can be used for further tasks.
+
+        return (
+            self.output(x),
+            attns,
+            new_past_kvs,
+            x,
+        )
 
 
 def xavier_init(model):
