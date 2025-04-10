@@ -15,7 +15,7 @@ class AbstractDataset(abc.ABC):
         self.group_elements2 = group_elements2
         self.ordered_group_elements1 = list(self.group_elements1)
         self.ordered_group_elements2 = list(self.group_elements2)
-        self.idx2vocab = ["o", "="] + list(group_elements1.union(group_elements2))
+        self.idx2vocab = ["o", "=", *list(group_elements1.union(group_elements2))]
         self.vocab2idx = {vocab: idx for idx, vocab in enumerate(self.idx2vocab)}
         self.n_vocab = len(self.idx2vocab)
         self.n_out = len(group_elements1.union(group_elements2))
@@ -40,7 +40,11 @@ class AbstractDataset(abc.ABC):
         a = self.ordered_group_elements1[idx // len(self.group_elements2)]
         b = self.ordered_group_elements2[idx % len(self.group_elements2)]
         c = self.fetch_output(a, b)
-        equation = self.form_equation(a, b, c)
+        equation = self.form_equation(
+            a=a,
+            b=b,
+            c=c,
+        )
         return self.encode(equation[:-1]), (self.vocab2idx[c] - 2), equation
 
     def fetch_train_example(self):

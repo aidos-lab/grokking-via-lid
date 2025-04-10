@@ -1,14 +1,25 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from grokking.grokk_replica.transformer import Transformer
 from grokking.grokk_replica.utils import causal_attn_mask, parameter_norm
 
 
 class GrokkModel(nn.Module):
-    def __init__(self, transformer_config, vocab_size, output_size, device):
-        super(GrokkModel, self).__init__()
-        self.transformer = Transformer(**transformer_config, vocab_size=vocab_size, output_size=output_size)
+    def __init__(
+        self,
+        transformer_config,
+        vocab_size,
+        output_size,
+        device,
+    ) -> None:
+        super().__init__()
+        self.transformer = Transformer(
+            **transformer_config,
+            vocab_size=vocab_size,
+            output_size=output_size,
+        )  # type: ignore - The transformer_config contains the necessary arguments for the Transformer class
         self.device = device
 
     def forward(self, x):
@@ -18,13 +29,14 @@ class GrokkModel(nn.Module):
 
     def get_loss(self, x, y):
         predictions, attns = self(x)
-        # print(torch.argmax(predictions[:, -1, :], dim=-1), x[:, -1])
+
         loss = F.cross_entropy(predictions[:, -1, :], y)
         accuracy = (torch.argmax(predictions[:, -1, :], dim=-1) == y).float().mean()
         attn_entropies = sum([-(attn * torch.log(attn + 1e-7)).sum(dim=-1).mean().item() for attn in attns]) / len(
             attns
         )
         param_norm = parameter_norm(self)
+
         return loss, {
             "loss": (loss.item(), x.shape[0]),
             "accuracy": (accuracy.item(), x.shape[0]),
