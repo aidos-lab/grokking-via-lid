@@ -1,23 +1,63 @@
+# Copyright 2025
+#
+# Authors:
+# Charlie Snell (2022)
+# Benjamin Ruppik (mail@ruppik.net)
+#
+# Code generation tools and workflows:
+# First versions of this code were potentially generated
+# with the help of AI writing assistants including
+# GitHub Copilot, ChatGPT, Microsoft Copilot, Google Gemini.
+# Afterwards, the generated segments were manually reviewed and edited.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import math
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch
-import math
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, heads, hidden_dim, attn_dim, dropout=0.1):
-        super(MultiHeadAttention, self).__init__()
+    def __init__(
+        self,
+        heads,
+        hidden_dim,
+        attn_dim,
+        dropout=0.1,
+    ) -> None:
+        super().__init__()
         self.heads = heads
         self.attn_dim = attn_dim
         self.dropout = nn.Dropout(p=dropout)
-        self.key_proj = nn.Linear(hidden_dim, self.attn_dim*self.heads)
-        self.val_proj = nn.Linear(hidden_dim, self.attn_dim*self.heads)
-        self.query_proj = nn.Linear(hidden_dim, self.attn_dim*self.heads)
-        self.output_proj = nn.Linear(self.attn_dim*self.heads, hidden_dim)
+        self.key_proj = nn.Linear(hidden_dim, self.attn_dim * self.heads)
+        self.val_proj = nn.Linear(hidden_dim, self.attn_dim * self.heads)
+        self.query_proj = nn.Linear(hidden_dim, self.attn_dim * self.heads)
+        self.output_proj = nn.Linear(self.attn_dim * self.heads, hidden_dim)
 
-    def forward(self, queries, keys, values, mask, past_kv=None):
-        assert keys.shape[1] == values.shape[1], 'keys and values time dimension must match'
-        assert past_kv is None or past_kv[0].shape[1] == past_kv[1].shape[1], 'cached keys and values time dimension must match'
+    def forward(
+        self,
+        queries,
+        keys,
+        values,
+        mask,
+        past_kv=None,
+    ):
+        assert keys.shape[1] == values.shape[1], "keys and values time dimension must match"
+        assert past_kv is None or past_kv[0].shape[1] == past_kv[1].shape[1], (
+            "cached keys and values time dimension must match"
+        )
         # queries/keys/values = (batch, time, hidden_dim)
         # mask = (batch, query_time, key_time) - bool tensor, True if should mask
         # past_kv = tuple of (past_k=(batch, time, head, hidden_dim), past_v=(batch, time, head, hidden_dim)) or None
@@ -34,16 +74,31 @@ class MultiHeadAttention(nn.Module):
             past_k, past_v = past_kv
             key_heads = torch.cat([past_k, key_heads], dim=1)
             val_heads = torch.cat([past_v, val_heads], dim=1)
-        attn_matrix = F.softmax((torch.einsum('bqhd,bkhd->hbqk', query_heads, key_heads)
-                                 / math.sqrt(self.attn_dim)).masked_fill(mask, float('-inf')), dim=-1)
+        attn_matrix = F.softmax(
+            (torch.einsum("bqhd,bkhd->hbqk", query_heads, key_heads) / math.sqrt(self.attn_dim)).masked_fill(
+                mask, float("-inf")
+            ),
+            dim=-1,
+        )
         attn_matrix = self.dropout(attn_matrix.transpose(0, 1).contiguous())
-        combined_vals = torch.einsum('bkhd,bhqk->bqhd', val_heads, attn_matrix).reshape(batch, time, self.attn_dim*self.heads)
+        combined_vals = torch.einsum("bkhd,bhqk->bqhd", val_heads, attn_matrix).reshape(
+            batch, time, self.attn_dim * self.heads
+        )
         attn_output = self.output_proj(combined_vals)
         return attn_output, attn_matrix, (key_heads, val_heads)
 
+
 class TransformerBlock(nn.Module):
-    def __init__(self, heads, hidden_dim, attn_dim, intermediate_dim, dropout=0.1, pre_norm=True):
-        super(TransformerBlock, self).__init__()
+    def __init__(
+        self,
+        heads,
+        hidden_dim,
+        attn_dim,
+        intermediate_dim,
+        dropout=0.1,
+        pre_norm=True,
+    ) -> None:
+        super().__init__()
         self.pre_norm = pre_norm
         self.attn = MultiHeadAttention(heads, hidden_dim, attn_dim, dropout=dropout)
         self.ff1 = nn.Linear(hidden_dim, intermediate_dim)
@@ -69,24 +124,64 @@ class TransformerBlock(nn.Module):
             x = self.dropout3(mlp_out) + x
         return x, attn_matrix, past_kv
 
+
 class Transformer(nn.Module):
-    def __init__(self, vocab_size, max_length, heads, hidden_dim, attn_dim, intermediate_dim, num_blocks, block_repeats, output_size, dropout=0.1, pre_norm=True):
-        super(Transformer, self).__init__()
+    def __init__(
+        self,
+        vocab_size,
+        max_length,
+        heads,
+        hidden_dim,
+        attn_dim,
+        intermediate_dim,
+        num_blocks,
+        block_repeats,
+        output_size,
+        dropout=0.1,
+        pre_norm=True,
+    ):
+        super().__init__()
         self.pre_norm = pre_norm
         self.hidden_dim = hidden_dim
         self.block_repeats = block_repeats
         self.max_length = max_length
-        self.transformer_blocks = nn.ModuleList([
-            TransformerBlock(heads, hidden_dim, attn_dim, intermediate_dim, dropout=dropout, pre_norm=pre_norm) for _ in range(num_blocks)
-        ])
-        self.embeddings = nn.Embedding(vocab_size, hidden_dim)
-        self.positions = nn.Embedding(max_length, hidden_dim)
-        self.output = nn.Linear(hidden_dim, output_size)
-        self.dropout = nn.Dropout(p=dropout)
+        self.transformer_blocks = nn.ModuleList(
+            modules=[
+                TransformerBlock(
+                    heads,
+                    hidden_dim,
+                    attn_dim,
+                    intermediate_dim,
+                    dropout=dropout,
+                    pre_norm=pre_norm,
+                )
+                for _ in range(num_blocks)
+            ],
+        )
+        self.embeddings = nn.Embedding(
+            vocab_size,
+            hidden_dim,
+        )
+        self.positions = nn.Embedding(
+            max_length,
+            hidden_dim,
+        )
+        self.output = nn.Linear(
+            hidden_dim,
+            output_size,
+        )
+        self.dropout = nn.Dropout(
+            p=dropout,
+        )
         if self.pre_norm:
             self.norm = nn.LayerNorm(hidden_dim)
 
-    def forward(self, x, attn_mask, past_kvs=None):
+    def forward(
+        self,
+        x,
+        attn_mask,
+        past_kvs=None,
+    ):
         # x = (batch, time)
         # attn_mask = (batch, query_time, key_time)
         # past_kvs = list of past_kvs for each layer
@@ -96,12 +191,17 @@ class Transformer(nn.Module):
         initial_pos = 0
         if past_kvs is not None:
             initial_pos = past_kvs[0][0].shape[1]
-        assert initial_pos+x.shape[1] <= self.max_length, 'sequence too long'
-        x = self.dropout(self.embeddings(x) * math.sqrt(self.hidden_dim) + self.positions.weight[initial_pos:initial_pos+x.shape[1], :])
+        assert initial_pos + x.shape[1] <= self.max_length, "sequence too long"
+        x = self.dropout(
+            self.embeddings(x) * math.sqrt(self.hidden_dim)
+            + self.positions.weight[initial_pos : initial_pos + x.shape[1], :]
+        )
         step = 0
         for _ in range(self.block_repeats):
             for i in range(len(self.transformer_blocks)):
-                x, attn, past_kv = self.transformer_blocks[i](x, attn_mask, past_kv=past_kvs[step] if past_kvs is not None else None)
+                x, attn, past_kv = self.transformer_blocks[i](
+                    x, attn_mask, past_kv=past_kvs[step] if past_kvs is not None else None
+                )
                 attns.append(attn)
                 new_past_kvs.append(past_kv)
                 step += 1
@@ -109,10 +209,12 @@ class Transformer(nn.Module):
             x = self.norm(x)
         return self.output(x), attns, new_past_kvs
 
+
 def xavier_init(model):
     for p in model.parameters():
         if p.dim() > 1:
             nn.init.xavier_uniform_(p)
+
 
 def kaiming_init(model):
     for p in model.parameters():

@@ -86,7 +86,9 @@ class GroupDataset(IterableDataset):
         else:
             raise NotImplementedError
 
-    def __iter__(self) -> Self:
+    def __iter__(
+        self,
+    ) -> Self:
         return self
 
     def __next__(
@@ -95,8 +97,15 @@ class GroupDataset(IterableDataset):
         torch.Tensor,
         torch.Tensor,
     ]:
-        x, y, _ = self.fetch_f()
-        return torch.tensor(x), torch.tensor(y)
+        (
+            x,
+            y,
+            _,
+        ) = self.fetch_f()
+        return (
+            torch.tensor(x),
+            torch.tensor(y),
+        )
 
 
 def train(
@@ -141,15 +150,19 @@ def train(
         split="val",
     )
 
+    # Notes:
+    # - In the current setup without shuffling, the dataloaders will not introduce any non-determinism.
     train_dataloader = DataLoader(
         dataset=train_data,
-        num_workers=train_cfg["num_workers"],
         batch_size=train_cfg["bsize"],
+        shuffle=False,
+        num_workers=train_cfg["num_workers"],
     )
     val_dataloader = DataLoader(
         dataset=val_data,
-        num_workers=train_cfg["num_workers"],
         batch_size=train_cfg["bsize"],
+        shuffle=False,
+        num_workers=train_cfg["num_workers"],
     )
 
     # # # #
@@ -196,7 +209,10 @@ def train(
                 for i, (val_x, val_y) in tqdm(enumerate(val_dataloader)):
                     if i >= train_cfg["eval_batches"]:
                         break
-                    _, val_logs = model.get_loss(
+                    (
+                        _,
+                        val_logs,
+                    ) = model.get_loss(
                         val_x.to(device),
                         val_y.to(device),
                     )
