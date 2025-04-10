@@ -24,13 +24,14 @@
 
 """Training script for Grokking models."""
 
-from dataclasses import dataclass
 import logging
 import os
 import pprint
+from dataclasses import dataclass
 from typing import Self
 
 import hydra
+import numpy as np
 import torch
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader, IterableDataset
@@ -135,6 +136,17 @@ class DatasetForTopologicalAnalysis:
             shuffle=False,
             num_workers=train_cfg["num_workers"],
         )
+
+
+@dataclass
+class InputAndHiddenStatesArray:
+    """Container for input and hidden states."""
+
+    input_x: list
+    hidden_states: np.ndarray
+
+    def __str__(self) -> str:
+        return f"InputAndHiddenStatesArray({len(self.input_x)=}; {self.hidden_states.shape=})"
 
 
 def train(
@@ -375,9 +387,21 @@ def train(
                         # Extend the list of input x with the new input x:
                         selected_input_x_list.extend(corresponding_input_x_np.tolist())
 
+                    # Create wrapper object
+                    input_and_hidden_states_array = InputAndHiddenStatesArray(
+                        input_x=selected_input_x_list,
+                        hidden_states=np.array(selected_hidden_states_list),
+                    )
+                    if verbosity >= Verbosity.NORMAL:
+                        # The string representation of the object will print the shapes of the list and array.
+                        logger.info(
+                            msg=f"{input_and_hidden_states_array!s}",  # noqa: G004 - low overhead
+                        )
+
                     # # # #
-                    # Analyse the extrated hidden states
-                    number_of_samples = topological_analysis_cfg["number_of_samples"]
+                    # Analyse the extracted hidden states
+                    topo_number_of_samples = topological_analysis_cfg["number_of_samples"]
+                    topo_sampling_seed = topological_analysis_cfg["sampling_seed"]
 
                     logger.warning(
                         msg="@@@ The analysis is not fully implemented yet!",
