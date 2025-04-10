@@ -38,12 +38,15 @@ from torch.utils.data import DataLoader, IterableDataset
 from tqdm.auto import tqdm
 
 import wandb
+from grokking.config_classes.local_estimates.plot_config import LocalEstminatesPlotConfig
 from grokking.grokk_replica.datasets import AbstractDataset
 from grokking.grokk_replica.grokk_model import GrokkModel
 from grokking.grokk_replica.load_objs import load_item
 from grokking.grokk_replica.utils import combine_logs
 from grokking.logging.create_and_configure_global_logger import create_and_configure_global_logger
 from grokking.model_handling.get_torch_device import get_torch_device
+from grokking.plotting.embedding_visualization.create_projected_data import create_projected_data
+from grokking.plotting.embedding_visualization.create_projection_plot import create_projection_plot
 from grokking.typing.enums import Verbosity
 
 # Increase the wandb service wait time to prevent errors on HHU Hilbert.
@@ -196,6 +199,74 @@ class InputAndHiddenStatesArray:
         # Update the hidden states and input x
         self.hidden_states = self.hidden_states[indices_to_keep]
         self.input_x = [self.input_x[i] for i in indices_to_keep]
+
+
+def generate_tsne_visualizations(
+    input_and_hidden_states_array: InputAndHiddenStatesArray,
+    pointwise_results_array_np: np.ndarray | None,
+    local_estimates_plot_config: LocalEstminatesPlotConfig,
+    verbosity: Verbosity = Verbosity.NORMAL,
+    logger: logging.Logger = default_logger,
+) -> None:
+    """Generate t-SNE visualizations of the local estimates."""
+    # TODO: This function needs to be updated to be compatible with the InputAndHiddenStatesArray
+    # TODO: Make the pointwise_results_array_np into an optional argument
+
+    tsne_array: np.ndarray = create_projected_data(
+        array=prepared_data_filtered.array,
+        pca_n_components=local_estimates_plot_config.pca_n_components,
+        tsne_n_components=local_estimates_plot_config.tsne_n_components,
+        tsne_random_state=local_estimates_plot_config.tsne_random_state,
+        verbosity=verbosity,
+        logger=logger,
+    )
+
+    for maximum_number_of_points in tqdm(
+        iterable=[
+            1_000,
+        ],
+        desc="Creating projection plots with different number of points",
+    ):
+        (
+            figure,
+            tsne_df,
+        ) = create_projection_plot(
+            tsne_result=tsne_array,
+            meta_df=prepared_data_filtered.meta_df,
+            results_array_np=pointwise_results_array_np,
+            maximum_number_of_points=maximum_number_of_points,
+            verbosity=verbosity,
+            logger=logger,
+        )
+
+        number_of_points_in_plot: int = len(tsne_df)
+
+        # TODO: Implement this saving
+
+        # output_folder = pathlib.Path(
+        #     embeddings_path_manager.get_saved_plots_local_estimates_projection_dir_absolute_path(),
+        #     f"no-points-in-plot-{number_of_points_in_plot}",
+        # )
+        # if verbosity >= Verbosity.NORMAL:
+        #     logger.info(
+        #         msg=f"Saving projection plot to {output_folder = }",  # noqa: G004 - low overhead
+        #     )
+
+        # save_projection_plot(
+        #     figure=figure,
+        #     tsne_df=tsne_df,
+        #     output_folder=output_folder,
+        #     save_html=local_estimates_plot_config.saving.save_html,
+        #     save_pdf=local_estimates_plot_config.saving.save_pdf,
+        #     save_csv=local_estimates_plot_config.saving.save_csv,
+        #     verbosity=verbosity,
+        #     logger=logger,
+        # )
+
+        # if verbosity >= Verbosity.NORMAL:
+        #     logger.info(
+        #         msg=f"Saving projection plot to {output_folder = } DONE",  # noqa: G004 - low overhead
+        #     )
 
 
 def train(
@@ -351,12 +422,12 @@ def train(
         # # # #
         # Embedding space analysis step
         topological_analysis_compute_estimates_every = topological_analysis_cfg["compute_estimates_every"]
+        topological_analysis_create_projection_plot_every = topological_analysis_cfg["create_projection_plot_every"]
 
-        if topological_analysis_compute_estimates_every < 0:
-            logger.info(
-                msg="Skipping topological analysis step.",
-            )
-        elif (step + 1) % topological_analysis_compute_estimates_every == 0:
+        if (
+            topological_analysis_compute_estimates_every > 0
+            and (step + 1) % topological_analysis_compute_estimates_every == 0
+        ):
             if verbosity >= Verbosity.NORMAL:
                 logger.info(
                     msg=f"Running topological analysis for {step + 1 = } ...",  # noqa: G004 - low overhead
@@ -448,7 +519,7 @@ def train(
                         )
 
                     # # # #
-                    # Analyse the extracted hidden states
+                    # Preprocess the hidden states
                     topo_number_of_samples = topological_analysis_cfg["number_of_samples"]
                     topo_sampling_seed = topological_analysis_cfg["sampling_seed"]
 
@@ -471,10 +542,31 @@ def train(
                             f"{input_and_hidden_states_array!s}",
                         )
 
+                    # # # #
+                    # Analyse the extracted hidden states
+
                     logger.warning(
                         msg="@@@ The analysis is not fully implemented yet!",
                     )
                     # TODO: Implement the analysis here
+
+                    # # # #
+                    # Optional plotting
+                    if (
+                        topological_analysis_create_projection_plot_every > 0
+                        and (step + 1) % topological_analysis_create_projection_plot_every == 0
+                    ):
+                        if verbosity >= Verbosity.NORMAL:
+                            logger.info(
+                                msg="Creating projection plot ...",
+                            )
+
+                        pass  # TODO: This is here for setting breakpoints
+
+                        if verbosity >= Verbosity.NORMAL:
+                            logger.info(
+                                msg="Creating projection plot DONE",
+                            )
 
                     logger.info(
                         msg=f"Running topological analysis for {dataset_for_topological_analysis.split = } ...",  # noqa: G004 - low overhead

@@ -25,6 +25,7 @@ train:
 
 topological_analysis:
   compute_estimates_every: 50
+  create_projection_plot_every: 50
   max_number_of_topo_batches: 100
   sampling_seed: 778
   number_of_samples: 1000
