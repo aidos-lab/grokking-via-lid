@@ -148,6 +148,27 @@ class InputAndHiddenStatesArray:
     def __str__(self) -> str:
         return f"InputAndHiddenStatesArray({len(self.input_x)=}; {self.hidden_states.shape=})"
 
+    def deduplicate_hidden_states(
+        self,
+    ) -> None:
+        (
+            unique_vectors,
+            indices_of_original_array,
+        ) = np.unique(
+            ar=self.hidden_states,
+            axis=0,
+            return_index=True,
+        )
+
+        # Keep same order of original vectors by sorting the indices
+        sorted_indices_of_original_array = np.sort(
+            indices_of_original_array,
+        )
+
+        # Update the hidden states and input x
+        self.hidden_states = self.hidden_states[sorted_indices_of_original_array]
+        self.input_x = [self.input_x[i] for i in sorted_indices_of_original_array]
+
 
 def train(
     config: dict,
@@ -395,13 +416,25 @@ def train(
                     if verbosity >= Verbosity.NORMAL:
                         # The string representation of the object will print the shapes of the list and array.
                         logger.info(
-                            msg=f"{input_and_hidden_states_array!s}",  # noqa: G004 - low overhead
+                            msg=f"Extracted hidden states container:\n{input_and_hidden_states_array!s}",  # noqa: G004 - low overhead
                         )
 
                     # # # #
                     # Analyse the extracted hidden states
                     topo_number_of_samples = topological_analysis_cfg["number_of_samples"]
                     topo_sampling_seed = topological_analysis_cfg["sampling_seed"]
+
+                    input_and_hidden_states_array.deduplicate_hidden_states()
+                    if verbosity >= Verbosity.NORMAL:
+                        # The string representation of the object will print the shapes of the list and array.
+                        logger.info(
+                            msg=f"After deduplication:\n"  # noqa: G004 - low overhead
+                            f"{input_and_hidden_states_array!s}",
+                        )
+
+                    # TODO: Deduplicate the hidden states (and corresponding input ids x)
+
+                    # TODO: Subsample the hidden states (and corresponding input ids x)
 
                     logger.warning(
                         msg="@@@ The analysis is not fully implemented yet!",
