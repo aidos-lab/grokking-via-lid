@@ -40,7 +40,7 @@ else
 fi
 
 # These lines add the environment variable to the .bashrc and .zshenv files, so that they contain the following line:
-# export TOPO_LLM_REPOSITORY_BASE_PATH=$REPOSITORY_BASE_PATH
+# export $REPOSITORY_BASE_PATH_VARIABLE_NAME=$REPOSITORY_BASE_PATH
 
 LINE_TO_ADD="export $REPOSITORY_BASE_PATH_VARIABLE_NAME=\"$REPOSITORY_BASE_PATH\""
 echo ">>> The following line will be added to $HOME/.bashrc and $HOME/.zshenv:"

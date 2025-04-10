@@ -20,6 +20,7 @@
             "cwd": "${workspaceFolder}",
             "args": [
                 "dataset.frac_train=0.4",
+                "wandb.wandb_project=grokking_replica_debugging",
             ],
         },
         {
@@ -32,6 +33,7 @@
             "args": [
                 "dataset.frac_train=0.4",
                 "wandb.use_wandb=false",
+                "wandb.wandb_project=grokking_replica_debugging", // <-- not relevant for running without wandb
             ],
             "env": {
                 "WANDB_DISABLED": "true"
@@ -60,6 +62,7 @@
                 //
                 "dataset.frac_train=0.4",
                 "wandb.use_wandb=false",
+                "wandb.wandb_project=grokking_replica_HHU_Hilbert_HPC_runs",
             ],
             "env": {
                 "PYTORCH_ENABLE_MPS_FALLBACK": "1"

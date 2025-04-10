@@ -1,23 +1,65 @@
+# Copyright 2025
+#
+# Authors:
+# Charlie Snell (2022)
+# Benjamin Ruppik (mail@ruppik.net)
+#
+# Code generation tools and workflows:
+# First versions of this code were potentially generated
+# with the help of AI writing assistants including
+# GitHub Copilot, ChatGPT, Microsoft Copilot, Google Gemini.
+# Afterwards, the generated segments were manually reviewed and edited.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Datasets for the group operation task."""
+
 import abc
 import random
 from itertools import permutations
-from typing import Set
 
 
 class AbstractDataset(abc.ABC):
-    def __init__(self, group_elements1: Set, group_elements2: Set, frac_train: float):
+    def __init__(
+        self,
+        group_elements1: set,
+        group_elements2: set,
+        frac_train: float,
+    ) -> None:
         self.frac_train = frac_train
         self.group_elements1 = group_elements1
         self.group_elements2 = group_elements2
         self.ordered_group_elements1 = list(self.group_elements1)
         self.ordered_group_elements2 = list(self.group_elements2)
-        self.idx2vocab = ["o", "="] + list(group_elements1.union(group_elements2))
+
+        # This is the mapping from token_ids to the vocabulary
+        # (operation sign, equals sign, and the group elements)
+        self.idx2vocab = [
+            "o",
+            "=",
+            *list(group_elements1.union(group_elements2)),
+        ]
         self.vocab2idx = {vocab: idx for idx, vocab in enumerate(self.idx2vocab)}
         self.n_vocab = len(self.idx2vocab)
         self.n_out = len(group_elements1.union(group_elements2))
+
+        # idxs is the number of pairs of group elements
         idxs = list(range(len(self.group_elements1) * len(self.group_elements2)))
         random.shuffle(idxs)
-        self.train_pairs, self.val_pairs = idxs[: int(len(idxs) * frac_train)], idxs[int(len(idxs) * frac_train) :]
+        (
+            self.train_pairs,
+            self.val_pairs,
+        ) = idxs[: int(len(idxs) * frac_train)], idxs[int(len(idxs) * frac_train) :]
 
     @abc.abstractmethod
     def fetch_output(self, a, b):
@@ -36,21 +78,37 @@ class AbstractDataset(abc.ABC):
         a = self.ordered_group_elements1[idx // len(self.group_elements2)]
         b = self.ordered_group_elements2[idx % len(self.group_elements2)]
         c = self.fetch_output(a, b)
-        equation = self.form_equation(a, b, c)
+        equation = self.form_equation(
+            a=a,
+            b=b,
+            c=c,
+        )
         return self.encode(equation[:-1]), (self.vocab2idx[c] - 2), equation
 
     def fetch_train_example(self):
-        idx = random.choice(self.train_pairs)
+        idx = random.choice(
+            self.train_pairs,
+        )
         return self.fetch_example(idx)
 
     def fetch_val_example(self):
-        idx = random.choice(self.val_pairs)
+        idx = random.choice(
+            self.val_pairs,
+        )
         return self.fetch_example(idx)
 
 
 class ModSumDataset(AbstractDataset):
-    def __init__(self, p, frac_train):
-        super(ModSumDataset, self).__init__(set(range(p)), set(range(p)), frac_train)
+    def __init__(
+        self,
+        p,
+        frac_train,
+    ) -> None:
+        super().__init__(
+            set(range(p)),
+            set(range(p)),
+            frac_train,
+        )
         self.p = p
 
     def fetch_output(self, a, b):
@@ -58,8 +116,16 @@ class ModSumDataset(AbstractDataset):
 
 
 class ModSubtractDataset(AbstractDataset):
-    def __init__(self, p, frac_train):
-        super(ModSubtractDataset, self).__init__(set(range(p)), set(range(p)), frac_train)
+    def __init__(
+        self,
+        p,
+        frac_train,
+    ) -> None:
+        super().__init__(
+            group_elements1=set(range(p)),
+            group_elements2=set(range(p)),
+            frac_train=frac_train,
+        )
         self.p = p
 
     def fetch_output(self, a, b):
@@ -67,8 +133,16 @@ class ModSubtractDataset(AbstractDataset):
 
 
 class ModDivisonDataset(AbstractDataset):
-    def __init__(self, p, frac_train):
-        super(ModDivisonDataset, self).__init__(set(range(p)), set(range(1, p)), frac_train)
+    def __init__(
+        self,
+        p,
+        frac_train,
+    ) -> None:
+        super().__init__(
+            set(range(p)),
+            set(range(1, p)),
+            frac_train,
+        )
         self.p = p
 
     def fetch_output(self, a, b):
@@ -76,10 +150,14 @@ class ModDivisonDataset(AbstractDataset):
 
 
 class PermutationGroup(AbstractDataset):
-    def __init__(self, k, frac_train):
+    def __init__(
+        self,
+        k,
+        frac_train,
+    ) -> None:
         perms = set(map(tuple, permutations(list(range(k)))))
         super(PermutationGroup, self).__init__(perms, perms, frac_train)
         self.k = k
 
-    def fetch_output(self, a, b):
+    def fetch_output(self, a, b):  # type: ignore - NOTE: There is a typing problem here, but we need to try out this group before we can debug it.
         return tuple([a[b[i]] for i in range(len(b))])
