@@ -41,6 +41,7 @@ from grokking.grokk_replica.grokk_model import GrokkModel
 from grokking.grokk_replica.load_objs import load_item
 from grokking.grokk_replica.utils import combine_logs
 from grokking.logging.create_and_configure_global_logger import create_and_configure_global_logger
+from grokking.model_handling.get_torch_device import get_torch_device
 from grokking.typing.enums import Verbosity
 
 # Increase the wandb service wait time to prevent errors on HHU Hilbert.
@@ -129,12 +130,11 @@ def train(
             config=config,
         )
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    if verbosity >= Verbosity.NORMAL:
-        logger.info(
-            msg=f"{device = }",  # noqa: G004 - low overhead
-        )
+    device: torch.device = get_torch_device(
+        preferred_torch_backend=train_cfg["preferred_torch_backend"],
+        verbosity=verbosity,
+        logger=logger,
+    )
 
     # # # # # # # #
     # Dataset and Dataloader

@@ -21,6 +21,7 @@ train:
   eval_every: 10
   eval_batches: 8
   max_steps: 1e6
+  preferred_torch_backend: auto
 
 wandb:
   use_wandb: true
