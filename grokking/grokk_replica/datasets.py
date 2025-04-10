@@ -1,11 +1,15 @@
 import abc
 import random
 from itertools import permutations
-from typing import Set
 
 
 class AbstractDataset(abc.ABC):
-    def __init__(self, group_elements1: Set, group_elements2: Set, frac_train: float):
+    def __init__(
+        self,
+        group_elements1: set,
+        group_elements2: set,
+        frac_train: float,
+    ):
         self.frac_train = frac_train
         self.group_elements1 = group_elements1
         self.group_elements2 = group_elements2
