@@ -169,6 +169,34 @@ class InputAndHiddenStatesArray:
         self.hidden_states = self.hidden_states[sorted_indices_of_original_array]
         self.input_x = [self.input_x[i] for i in sorted_indices_of_original_array]
 
+    def subsample(
+        self,
+        number_of_samples: int,
+        sampling_seed: int,
+        verbosity: Verbosity = Verbosity.NORMAL,
+        logger: logging.Logger = default_logger,
+    ) -> None:
+        """Subsample the hidden states and input x."""
+        if number_of_samples > len(self.input_x):
+            logger.warning(
+                msg="Requested number of samples exceeds available input_x length. We will use all available samples.",
+            )
+            logger.info(
+                msg="We will not modify the hidden states and input x.",
+            )
+            return
+
+        rng = np.random.default_rng(seed=sampling_seed)
+        indices_to_keep = rng.choice(
+            a=len(self.input_x),
+            size=number_of_samples,
+            replace=False,
+        )
+
+        # Update the hidden states and input x
+        self.hidden_states = self.hidden_states[indices_to_keep]
+        self.input_x = [self.input_x[i] for i in indices_to_keep]
+
 
 def train(
     config: dict,
@@ -426,15 +454,22 @@ def train(
 
                     input_and_hidden_states_array.deduplicate_hidden_states()
                     if verbosity >= Verbosity.NORMAL:
-                        # The string representation of the object will print the shapes of the list and array.
                         logger.info(
                             msg=f"After deduplication:\n"  # noqa: G004 - low overhead
                             f"{input_and_hidden_states_array!s}",
                         )
 
-                    # TODO: Deduplicate the hidden states (and corresponding input ids x)
-
-                    # TODO: Subsample the hidden states (and corresponding input ids x)
+                    input_and_hidden_states_array.subsample(
+                        number_of_samples=topo_number_of_samples,
+                        sampling_seed=topo_sampling_seed,
+                        verbosity=verbosity,
+                        logger=logger,
+                    )
+                    if verbosity >= Verbosity.NORMAL:
+                        logger.info(
+                            msg=f"After subsampling:\n"  # noqa: G004 - low overhead
+                            f"{input_and_hidden_states_array!s}",
+                        )
 
                     logger.warning(
                         msg="@@@ The analysis is not fully implemented yet!",
