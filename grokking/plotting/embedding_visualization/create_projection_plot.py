@@ -63,6 +63,7 @@ def create_projection_plot(
     meta_df: pd.DataFrame,
     results_array_np: np.ndarray | None = None,
     maximum_number_of_points: int | None = None,
+    text_column_name: str | None = None,
     verbosity: Verbosity = Verbosity.NORMAL,
     logger: logging.Logger = default_logger,
 ) -> tuple[
@@ -109,39 +110,15 @@ def create_projection_plot(
     )
 
     # Add a new column for the local estimates, initialize with NaN
-    tsne_df["estimate"] = np.nan
+    estimate_column_name = "estimate"
+    tsne_df[estimate_column_name] = np.nan
 
     # If results_array_np is provided, populate the estimate column
     if results_array_np is not None:
         tsne_df.loc[
             : len(results_array_np) - 1,
-            "estimate",
+            estimate_column_name,
         ] = results_array_np
-
-    # # # #
-    # For better display in the plot, we truncate certain elements:
-    # in the 'tokens_list' column to a maximum of 10 elements
-    tsne_df["tokens_list_truncated_str"] = tsne_df["tokens_list"].apply(
-        lambda x: str(x[:20]),
-    )
-    # in the concatenated_tokens column to a maximum of 100 characters
-    tsne_df["concatenated_tokens_truncated_str"] = tsne_df["concatenated_tokens"].apply(
-        lambda x: str(x[:120]),
-    )
-
-    # Define the list of columns that need HTML sanitization.
-    # Note: We do not apply this to "token_name", because in this column the <s> and </s> do not appear in pairs.
-    # If we would apply the sanitization, the token_name label would not appear correctly in the plot.
-    columns_to_sanitize = [
-        "tokens_list_truncated_str",
-        "concatenated_tokens_truncated_str",
-    ]
-
-    # Apply the sanitize_html function to the specified columns
-    for column in columns_to_sanitize:
-        tsne_df[column] = tsne_df[column].apply(
-            sanitize_html,
-        )
 
     # # # #
     # If a maximum number of points is specified, we only keep the first n points
@@ -150,20 +127,15 @@ def create_projection_plot(
             maximum_number_of_points,
         )
 
-    figure = px.scatter(
-        tsne_df,
+    figure: go.Figure = px.scatter(
+        data_frame=tsne_df,
         x="TSNE-1",
         y="TSNE-2",
-        text="token_name",
-        color="estimate",
+        text=text_column_name,
+        color=estimate_column_name,
         hover_data={
-            "token_id": True,
-            "sentence_idx": True,
-            "subsample_idx": True,
-            "token_name": True,
-            "tokens_list_truncated_str": True,
-            "concatenated_tokens_truncated_str": True,
-            "estimate": True,
+            text_column_name: True,
+            estimate_column_name: True,
         },
         color_continuous_scale="Viridis",  # Optional: Choose a color scale
     )

@@ -32,6 +32,7 @@ from typing import Self
 
 import hydra
 import numpy as np
+import pandas as pd
 import torch
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader, IterableDataset
@@ -213,7 +214,7 @@ def generate_tsne_visualizations(
     # TODO: Make the pointwise_results_array_np into an optional argument
 
     tsne_array: np.ndarray = create_projected_data(
-        array=prepared_data_filtered.array,
+        array=input_and_hidden_states_array.hidden_states,
         pca_n_components=local_estimates_plot_config.pca_n_components,
         tsne_n_components=local_estimates_plot_config.tsne_n_components,
         tsne_random_state=local_estimates_plot_config.tsne_random_state,
@@ -227,14 +228,21 @@ def generate_tsne_visualizations(
         ],
         desc="Creating projection plots with different number of points",
     ):
+        input_ids_column_name = "input_ids"
+        meta_df = pd.DataFrame(
+            data=input_and_hidden_states_array.input_x,
+            columns=[input_ids_column_name],
+        )
+
         (
             figure,
             tsne_df,
         ) = create_projection_plot(
             tsne_result=tsne_array,
-            meta_df=prepared_data_filtered.meta_df,
+            meta_df=meta_df,
             results_array_np=pointwise_results_array_np,
             maximum_number_of_points=maximum_number_of_points,
+            text_column_name=input_ids_column_name,
             verbosity=verbosity,
             logger=logger,
         )
@@ -561,7 +569,15 @@ def train(
                                 msg="Creating projection plot ...",
                             )
 
-                        pass  # TODO: This is here for setting breakpoints
+                        local_estimates_plot_config = LocalEstminatesPlotConfig()
+
+                        generate_tsne_visualizations(
+                            input_and_hidden_states_array=input_and_hidden_states_array,
+                            pointwise_results_array_np=None,  # TODO: Replace with the actual results array once implemented
+                            local_estimates_plot_config=local_estimates_plot_config,
+                            verbosity=verbosity,
+                            logger=logger,
+                        )
 
                         if verbosity >= Verbosity.NORMAL:
                             logger.info(
