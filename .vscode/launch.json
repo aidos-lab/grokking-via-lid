@@ -40,6 +40,26 @@
             }
         },
         {
+            "name": "Train model - Local debugging multirun joblib launcher - without wandb",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "grokking/scripts/train_grokk.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "--multirun",
+                "hydra/launcher=basic",
+                // "hydra/launcher=joblib",
+                // TODO: Submit with different seeds
+                "dataset.frac_train=0.4",
+                "wandb.use_wandb=false",
+                "wandb.wandb_project=grokking_replica_debugging", // <-- not relevant for running without wandb
+            ],
+            "env": {
+                "WANDB_DISABLED": "true"
+            }
+        },
+        {
             "name": "Train model - HHU Hilbert HPC submission - ",
             "type": "debugpy",
             "request": "launch",

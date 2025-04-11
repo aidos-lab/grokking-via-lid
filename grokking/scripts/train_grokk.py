@@ -26,29 +26,42 @@
 
 import logging
 import os
+import pathlib
 import pprint
 from dataclasses import dataclass
 from typing import Self
 
 import hydra
+import hydra.core
 import numpy as np
+import pandas as pd
 import torch
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader, IterableDataset
 from tqdm.auto import tqdm
 
 import wandb
+from grokking.config_classes.local_estimates.plot_config import LocalEstminatesPlotConfig
 from grokking.grokk_replica.datasets import AbstractDataset
 from grokking.grokk_replica.grokk_model import GrokkModel
 from grokking.grokk_replica.load_objs import load_item
 from grokking.grokk_replica.utils import combine_logs
 from grokking.logging.create_and_configure_global_logger import create_and_configure_global_logger
 from grokking.model_handling.get_torch_device import get_torch_device
+from grokking.plotting.embedding_visualization.create_projected_data import create_projected_data
+from grokking.plotting.embedding_visualization.create_projection_plot import (
+    create_projection_plot,
+    save_projection_plot,
+)
 from grokking.typing.enums import Verbosity
 
 # Increase the wandb service wait time to prevent errors on HHU Hilbert.
 # https://github.com/wandb/wandb/issues/5214
 os.environ["WANDB__SERVICE_WAIT"] = "300"
+
+default_output_dir = pathlib.Path(
+    "outputs",
+)
 
 # Logger for this file
 global_logger: logging.Logger = create_and_configure_global_logger(
@@ -148,9 +161,131 @@ class InputAndHiddenStatesArray:
     def __str__(self) -> str:
         return f"InputAndHiddenStatesArray({len(self.input_x)=}; {self.hidden_states.shape=})"
 
+    def deduplicate_hidden_states(
+        self,
+    ) -> None:
+        (
+            unique_vectors,
+            indices_of_original_array,
+        ) = np.unique(
+            ar=self.hidden_states,
+            axis=0,
+            return_index=True,
+        )
+
+        # Keep same order of original vectors by sorting the indices
+        sorted_indices_of_original_array = np.sort(
+            indices_of_original_array,
+        )
+
+        # Update the hidden states and input x
+        self.hidden_states = self.hidden_states[sorted_indices_of_original_array]
+        self.input_x = [self.input_x[i] for i in sorted_indices_of_original_array]
+
+    def subsample(
+        self,
+        number_of_samples: int,
+        sampling_seed: int,
+        verbosity: Verbosity = Verbosity.NORMAL,
+        logger: logging.Logger = default_logger,
+    ) -> None:
+        """Subsample the hidden states and input x."""
+        if number_of_samples > len(self.input_x):
+            logger.warning(
+                msg="Requested number of samples exceeds available input_x length. We will use all available samples.",
+            )
+            logger.info(
+                msg="We will not modify the hidden states and input x.",
+            )
+            return
+
+        rng = np.random.default_rng(seed=sampling_seed)
+        indices_to_keep = rng.choice(
+            a=len(self.input_x),
+            size=number_of_samples,
+            replace=False,
+        )
+
+        # Update the hidden states and input x
+        self.hidden_states = self.hidden_states[indices_to_keep]
+        self.input_x = [self.input_x[i] for i in indices_to_keep]
+
+
+def generate_tsne_visualizations(
+    input_and_hidden_states_array: InputAndHiddenStatesArray,
+    pointwise_results_array_np: np.ndarray | None,
+    local_estimates_plot_config: LocalEstminatesPlotConfig,
+    saved_plots_local_estimates_projection_dir_absolute_path: pathlib.Path | None = None,
+    verbosity: Verbosity = Verbosity.NORMAL,
+    logger: logging.Logger = default_logger,
+) -> None:
+    """Generate t-SNE visualizations of the local estimates."""
+    tsne_array: np.ndarray = create_projected_data(
+        array=input_and_hidden_states_array.hidden_states,
+        pca_n_components=local_estimates_plot_config.pca_n_components,
+        tsne_n_components=local_estimates_plot_config.tsne_n_components,
+        tsne_random_state=local_estimates_plot_config.tsne_random_state,
+        verbosity=verbosity,
+        logger=logger,
+    )
+
+    for maximum_number_of_points in tqdm(
+        iterable=[
+            1_000,
+        ],
+        desc="Creating projection plots with different number of points",
+    ):
+        input_ids_column_name = "input_ids"
+        meta_df = pd.DataFrame(
+            data=input_and_hidden_states_array.input_x,
+            columns=[input_ids_column_name],
+        )
+
+        (
+            figure,
+            tsne_df,
+        ) = create_projection_plot(
+            tsne_result=tsne_array,
+            meta_df=meta_df,
+            results_array_np=pointwise_results_array_np,
+            maximum_number_of_points=maximum_number_of_points,
+            text_column_name=input_ids_column_name,
+            verbosity=verbosity,
+            logger=logger,
+        )
+
+        number_of_points_in_plot: int = len(tsne_df)
+
+        if saved_plots_local_estimates_projection_dir_absolute_path is not None:
+            output_folder = pathlib.Path(
+                saved_plots_local_estimates_projection_dir_absolute_path,
+                f"no-points-in-plot-{number_of_points_in_plot}",
+            )
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"Saving projection plot to {output_folder = }",  # noqa: G004 - low overhead
+                )
+
+            save_projection_plot(
+                figure=figure,
+                tsne_df=tsne_df,
+                output_folder=output_folder,
+                save_html=local_estimates_plot_config.saving.save_html,
+                save_pdf=local_estimates_plot_config.saving.save_pdf,
+                save_csv=local_estimates_plot_config.saving.save_csv,
+                verbosity=verbosity,
+                logger=logger,
+            )
+
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"Saving projection plot to {output_folder = } DONE",  # noqa: G004 - low overhead
+                )
+
 
 def train(
     config: dict,
+    output_dir: os.PathLike = default_output_dir,
     verbosity: Verbosity = Verbosity.NORMAL,
     logger: logging.Logger = default_logger,
 ) -> None:
@@ -302,12 +437,12 @@ def train(
         # # # #
         # Embedding space analysis step
         topological_analysis_compute_estimates_every = topological_analysis_cfg["compute_estimates_every"]
+        topological_analysis_create_projection_plot_every = topological_analysis_cfg["create_projection_plot_every"]
 
-        if topological_analysis_compute_estimates_every < 0:
-            logger.info(
-                msg="Skipping topological analysis step.",
-            )
-        elif (step + 1) % topological_analysis_compute_estimates_every == 0:
+        if (
+            topological_analysis_compute_estimates_every > 0
+            and (step + 1) % topological_analysis_compute_estimates_every == 0
+        ):
             if verbosity >= Verbosity.NORMAL:
                 logger.info(
                     msg=f"Running topological analysis for {step + 1 = } ...",  # noqa: G004 - low overhead
@@ -326,6 +461,10 @@ def train(
                     selected_hidden_states_list = []
                     selected_input_x_list = []
 
+                    # Note:
+                    # - Currently, we use the same dataloader in each iteration where this topological analysis is run.
+                    # - Thus, the embedded data is different for each iteration,
+                    #   since we keep stepping through the iterable dataset.
                     for topo_batch_index, (
                         topo_input_x,
                         topo_input_y,
@@ -334,7 +473,8 @@ def train(
                             dataset_for_topological_analysis.dataloader,
                         ),
                     ):
-                        # Break condition is necessary, because otherwise we would keep looping over the dataset and never stop
+                        # Break condition is necessary,
+                        # because otherwise we would keep looping over the dataset and never stop
                         if topo_batch_index >= topological_analysis_cfg["max_number_of_topo_batches"]:
                             break
 
@@ -395,18 +535,75 @@ def train(
                     if verbosity >= Verbosity.NORMAL:
                         # The string representation of the object will print the shapes of the list and array.
                         logger.info(
-                            msg=f"{input_and_hidden_states_array!s}",  # noqa: G004 - low overhead
+                            msg=f"Extracted hidden states container:\n{input_and_hidden_states_array!s}",  # noqa: G004 - low overhead
+                        )
+
+                    # # # #
+                    # Preprocess the hidden states
+                    topo_number_of_samples = topological_analysis_cfg["number_of_samples"]
+                    topo_sampling_seed = topological_analysis_cfg["sampling_seed"]
+
+                    input_and_hidden_states_array.deduplicate_hidden_states()
+                    if verbosity >= Verbosity.NORMAL:
+                        logger.info(
+                            msg=f"After deduplication:\n"  # noqa: G004 - low overhead
+                            f"{input_and_hidden_states_array!s}",
+                        )
+
+                    input_and_hidden_states_array.subsample(
+                        number_of_samples=topo_number_of_samples,
+                        sampling_seed=topo_sampling_seed,
+                        verbosity=verbosity,
+                        logger=logger,
+                    )
+                    if verbosity >= Verbosity.NORMAL:
+                        logger.info(
+                            msg=f"After subsampling:\n"  # noqa: G004 - low overhead
+                            f"{input_and_hidden_states_array!s}",
                         )
 
                     # # # #
                     # Analyse the extracted hidden states
-                    topo_number_of_samples = topological_analysis_cfg["number_of_samples"]
-                    topo_sampling_seed = topological_analysis_cfg["sampling_seed"]
 
                     logger.warning(
                         msg="@@@ The analysis is not fully implemented yet!",
                     )
                     # TODO: Implement the analysis here
+
+                    # # # #
+                    # Optional plotting
+                    if (
+                        topological_analysis_create_projection_plot_every > 0
+                        and (step + 1) % topological_analysis_create_projection_plot_every == 0
+                    ):
+                        if verbosity >= Verbosity.NORMAL:
+                            logger.info(
+                                msg="Creating projection plot ...",
+                            )
+
+                        local_estimates_plot_config = LocalEstminatesPlotConfig()
+
+                        saved_plots_local_estimates_root_dir = pathlib.Path(
+                            output_dir,
+                            "plots",
+                            "local_estimates_projection",
+                            f"{step+1=}",
+                            f"{dataset_for_topological_analysis.split=}",
+                        )
+
+                        generate_tsne_visualizations(
+                            input_and_hidden_states_array=input_and_hidden_states_array,
+                            pointwise_results_array_np=None,  # TODO: Replace with the actual results array once implemented
+                            local_estimates_plot_config=local_estimates_plot_config,
+                            saved_plots_local_estimates_projection_dir_absolute_path=saved_plots_local_estimates_root_dir,
+                            verbosity=verbosity,
+                            logger=logger,
+                        )
+
+                        if verbosity >= Verbosity.NORMAL:
+                            logger.info(
+                                msg="Creating projection plot DONE",
+                            )
 
                     logger.info(
                         msg=f"Running topological analysis for {dataset_for_topological_analysis.split = } ...",  # noqa: G004 - low overhead
@@ -503,11 +700,33 @@ def main(
             msg,
         )
 
+    cwd: pathlib.Path = pathlib.Path.cwd()
+    hydra_output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir  # type: ignore - problem with this import type
+
+    if verbosity >= Verbosity.NORMAL:
+        logger.info(
+            msg=f"Current working directory:\n{cwd = }",  # noqa: G004 - low overhead
+        )
+        logger.info(
+            msg=f"Hydra output directory:\n{hydra_output_dir = }",  # noqa: G004 - low overhead
+        )
+
+    if verbosity >= Verbosity.NORMAL:
+        logger.info(
+            msg="Calling train() function ...",
+        )
+
     train(
         config=cfg_as_container,
+        output_dir=hydra_output_dir,
         verbosity=verbosity,
         logger=logger,
     )
+
+    if verbosity >= Verbosity.NORMAL:
+        logger.info(
+            msg="Calling train() function DONE",
+        )
 
 
 if __name__ == "__main__":
