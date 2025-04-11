@@ -25,6 +25,7 @@
 """Loading objects from config files."""
 
 import logging
+from collections.abc import Callable
 
 import torch
 
@@ -46,8 +47,8 @@ registry: dict = {}
 
 
 def register(
-    name,
-):
+    name: str,
+) -> Callable:
     def add_f(f):
         registry[name] = f
         return f
@@ -56,13 +57,15 @@ def register(
 
 
 def load_item(
-    config,
+    config: dict,
     *args,
     verbosity: Verbosity = Verbosity.NORMAL,
     logger: logging.Logger = default_logger,
 ):
     config = config.copy()
-    name = config.pop("name")
+    name = config.pop(
+        "name",
+    )
     if name not in registry:
         raise NotImplementedError
     if verbosity >= Verbosity.NORMAL:
@@ -79,53 +82,57 @@ def load_item(
 
 @register(name="mod_sum_dataset")
 def load_mod_sum_dataset(
-    config,
+    config: dict,
     verbosity: Verbosity = Verbosity.NORMAL,
     logger: logging.Logger = default_logger,
-):
+) -> ModSumDataset:
     return ModSumDataset(
         p=config["p"],
         frac_train=config["frac_train"],
+        dataset_seed=config["dataset_seed"],
     )
 
 
-@register("mod_subtract_dataset")
+@register(name="mod_subtract_dataset")
 def load_mod_subtract_dataset(
-    config,
+    config: dict,
     verbosity: Verbosity = Verbosity.NORMAL,
     logger: logging.Logger = default_logger,
-):
+) -> ModSubtractDataset:
     return ModSubtractDataset(
         p=config["p"],
         frac_train=config["frac_train"],
+        dataset_seed=config["dataset_seed"],
     )
 
 
-@register("mod_division_dataset")
+@register(name="mod_division_dataset")
 def load_mod_division_dataset(
-    config,
+    config: dict,
     verbosity: Verbosity = Verbosity.NORMAL,
     logger: logging.Logger = default_logger,
-):
+) -> ModDivisonDataset:
     return ModDivisonDataset(
         p=config["p"],
         frac_train=config["frac_train"],
+        dataset_seed=config["dataset_seed"],
     )
 
 
-@register("permutation_group_dataset")
+@register(name="permutation_group_dataset")
 def load_mod_permutation_dataset(
-    config,
+    config: dict,
     verbosity: Verbosity = Verbosity.NORMAL,
     logger: logging.Logger = default_logger,
-):
+) -> PermutationGroup:
     return PermutationGroup(
         k=config["k"],
         frac_train=config["frac_train"],
+        dataset_seed=config["dataset_seed"],
     )
 
 
-@register("grokk_model")
+@register(name="grokk_model")
 def load_grokk_model(
     config,
     vocab_size,

@@ -22,7 +22,7 @@ usage() {
 # # # # # # # # # # # # # # # # # # # # # # # # #
 # Default values
 DRY_RUN_FLAG=""
-REMOTE_HOST="Hilbert-Storage"
+REMOTE_HOST="HilbertStorage"
 SELECTED_SUBFOLDERS_LIST=()
 
 # Name of the environment variables holding the repository base path

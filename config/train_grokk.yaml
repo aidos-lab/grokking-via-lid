@@ -6,6 +6,7 @@ defaults:
 dataset:
   frac_train: 0.4
   p: 96
+  dataset_seed: 42
 
 model:
   transformer_config:
@@ -22,10 +23,11 @@ train:
   eval_batches: 8
   max_steps: 1e6
   preferred_torch_backend: auto
+  global_seed: 1234
 
 topological_analysis:
   compute_estimates_every: 50
-  create_projection_plot_every: 100
+  create_projection_plot_every: 200
   max_number_of_topo_batches: 100
   sampling_seed: 778
   number_of_samples: 100

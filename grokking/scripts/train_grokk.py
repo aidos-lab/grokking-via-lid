@@ -41,13 +41,14 @@ from torch.utils.data import DataLoader, IterableDataset
 from tqdm.auto import tqdm
 
 import wandb
-from grokking.config_classes.local_estimates.plot_config import LocalEstminatesPlotConfig
+from grokking.config_classes.local_estimates.plot_config import LocalEstminatesPlotConfig, PlotSavingConfig
 from grokking.grokk_replica.datasets import AbstractDataset
 from grokking.grokk_replica.grokk_model import GrokkModel
 from grokking.grokk_replica.load_objs import load_item
 from grokking.grokk_replica.utils import combine_logs
 from grokking.logging.create_and_configure_global_logger import create_and_configure_global_logger
 from grokking.model_handling.get_torch_device import get_torch_device
+from grokking.model_handling.set_seed import set_seed
 from grokking.plotting.embedding_visualization.create_projected_data import create_projected_data
 from grokking.plotting.embedding_visualization.create_projection_plot import (
     create_projection_plot,
@@ -298,6 +299,13 @@ def train(
     train_cfg = config["train"]
     wandb_cfg = config["wandb"]
     topological_analysis_cfg: dict = config["topological_analysis"]
+
+    # Use the global seed to initialize the random number generators and torch initialization.
+    global_seed = train_cfg["global_seed"]
+    set_seed(
+        seed=global_seed,
+        logger=logger,
+    )
 
     if wandb_cfg["use_wandb"]:
         wandb.init(
@@ -581,7 +589,14 @@ def train(
                                 msg="Creating projection plot ...",
                             )
 
-                        local_estimates_plot_config = LocalEstminatesPlotConfig()
+                        local_estimates_plot_config = LocalEstminatesPlotConfig(
+                            pca_n_components=None,  # Skip the PCA step
+                            saving=PlotSavingConfig(
+                                save_html=False,  # Since the .html is quite large, we skip saving it for now
+                                save_pdf=True,
+                                save_csv=True,
+                            ),
+                        )
 
                         saved_plots_local_estimates_root_dir = pathlib.Path(
                             output_dir,
