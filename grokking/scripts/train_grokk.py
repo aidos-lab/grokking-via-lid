@@ -48,6 +48,7 @@ from grokking.grokk_replica.load_objs import load_item
 from grokking.grokk_replica.utils import combine_logs
 from grokking.logging.create_and_configure_global_logger import create_and_configure_global_logger
 from grokking.model_handling.get_torch_device import get_torch_device
+from grokking.model_handling.set_seed import set_seed
 from grokking.plotting.embedding_visualization.create_projected_data import create_projected_data
 from grokking.plotting.embedding_visualization.create_projection_plot import (
     create_projection_plot,
@@ -298,6 +299,13 @@ def train(
     train_cfg = config["train"]
     wandb_cfg = config["wandb"]
     topological_analysis_cfg: dict = config["topological_analysis"]
+
+    # Use the global seed to initialize the random number generators and torch initialization.
+    global_seed = train_cfg["global_seed"]
+    set_seed(
+        seed=global_seed,
+        logger=logger,
+    )
 
     if wandb_cfg["use_wandb"]:
         wandb.init(
