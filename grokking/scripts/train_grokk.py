@@ -26,6 +26,7 @@
 
 import logging
 import os
+import pathlib
 import pprint
 from dataclasses import dataclass
 from typing import Self
@@ -47,7 +48,10 @@ from grokking.grokk_replica.utils import combine_logs
 from grokking.logging.create_and_configure_global_logger import create_and_configure_global_logger
 from grokking.model_handling.get_torch_device import get_torch_device
 from grokking.plotting.embedding_visualization.create_projected_data import create_projected_data
-from grokking.plotting.embedding_visualization.create_projection_plot import create_projection_plot
+from grokking.plotting.embedding_visualization.create_projection_plot import (
+    create_projection_plot,
+    save_projection_plot,
+)
 from grokking.typing.enums import Verbosity
 
 # Increase the wandb service wait time to prevent errors on HHU Hilbert.
@@ -206,13 +210,11 @@ def generate_tsne_visualizations(
     input_and_hidden_states_array: InputAndHiddenStatesArray,
     pointwise_results_array_np: np.ndarray | None,
     local_estimates_plot_config: LocalEstminatesPlotConfig,
+    saved_plots_local_estimates_projection_dir_absolute_path: pathlib.Path | None = None,
     verbosity: Verbosity = Verbosity.NORMAL,
     logger: logging.Logger = default_logger,
 ) -> None:
     """Generate t-SNE visualizations of the local estimates."""
-    # TODO: This function needs to be updated to be compatible with the InputAndHiddenStatesArray
-    # TODO: Make the pointwise_results_array_np into an optional argument
-
     tsne_array: np.ndarray = create_projected_data(
         array=input_and_hidden_states_array.hidden_states,
         pca_n_components=local_estimates_plot_config.pca_n_components,
@@ -249,32 +251,31 @@ def generate_tsne_visualizations(
 
         number_of_points_in_plot: int = len(tsne_df)
 
-        # TODO: Implement this saving
+        if saved_plots_local_estimates_projection_dir_absolute_path is not None:
+            output_folder = pathlib.Path(
+                saved_plots_local_estimates_projection_dir_absolute_path,
+                f"no-points-in-plot-{number_of_points_in_plot}",
+            )
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"Saving projection plot to {output_folder = }",  # noqa: G004 - low overhead
+                )
 
-        # output_folder = pathlib.Path(
-        #     embeddings_path_manager.get_saved_plots_local_estimates_projection_dir_absolute_path(),
-        #     f"no-points-in-plot-{number_of_points_in_plot}",
-        # )
-        # if verbosity >= Verbosity.NORMAL:
-        #     logger.info(
-        #         msg=f"Saving projection plot to {output_folder = }",  # noqa: G004 - low overhead
-        #     )
+            save_projection_plot(
+                figure=figure,
+                tsne_df=tsne_df,
+                output_folder=output_folder,
+                save_html=local_estimates_plot_config.saving.save_html,
+                save_pdf=local_estimates_plot_config.saving.save_pdf,
+                save_csv=local_estimates_plot_config.saving.save_csv,
+                verbosity=verbosity,
+                logger=logger,
+            )
 
-        # save_projection_plot(
-        #     figure=figure,
-        #     tsne_df=tsne_df,
-        #     output_folder=output_folder,
-        #     save_html=local_estimates_plot_config.saving.save_html,
-        #     save_pdf=local_estimates_plot_config.saving.save_pdf,
-        #     save_csv=local_estimates_plot_config.saving.save_csv,
-        #     verbosity=verbosity,
-        #     logger=logger,
-        # )
-
-        # if verbosity >= Verbosity.NORMAL:
-        #     logger.info(
-        #         msg=f"Saving projection plot to {output_folder = } DONE",  # noqa: G004 - low overhead
-        #     )
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"Saving projection plot to {output_folder = } DONE",  # noqa: G004 - low overhead
+                )
 
 
 def train(
@@ -571,10 +572,20 @@ def train(
 
                         local_estimates_plot_config = LocalEstminatesPlotConfig()
 
+                        # TODO: Place this into the hydra directory
+                        saved_plots_local_estimates_root_dir = pathlib.Path(
+                            "outputs",
+                            "plots",
+                            "local_estimates_projection",
+                            f"{step+1=}",
+                            f"{dataset_for_topological_analysis.split=}",
+                        )
+
                         generate_tsne_visualizations(
                             input_and_hidden_states_array=input_and_hidden_states_array,
                             pointwise_results_array_np=None,  # TODO: Replace with the actual results array once implemented
                             local_estimates_plot_config=local_estimates_plot_config,
+                            saved_plots_local_estimates_projection_dir_absolute_path=saved_plots_local_estimates_root_dir,
                             verbosity=verbosity,
                             logger=logger,
                         )

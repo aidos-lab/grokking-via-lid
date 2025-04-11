@@ -194,7 +194,7 @@ def save_projection_plot(  # noqa: PLR0913 - more arguments because of feature f
         )
         if verbosity >= Verbosity.NORMAL:
             logger.info(
-                f"Plot saved as HTML to {html_file = }",  # noqa: G004 - low overhead
+                msg=f"Plot saved as HTML to {html_file = }",  # noqa: G004 - low overhead
             )
 
     if save_pdf:
