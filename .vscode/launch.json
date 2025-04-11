@@ -111,7 +111,8 @@
                 "hydra.launcher.walltime=05:00:00", // <-- The pipeline run for regular embeddings should only take a few minutes.
                 //    >> END: Hydra options
                 //
-                "dataset.dataset_seed=42,43",
+                // "dataset.dataset_seed=42,43",
+                "dataset.dataset_seed=44,45",
                 "dataset.frac_train=0.4",
                 //
                 "wandb.use_wandb=true",

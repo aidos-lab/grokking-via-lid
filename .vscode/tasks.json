@@ -4,7 +4,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Local - rsync from HHU Hilbert HPC to local - (small) - Full 'outputs' directory",
+            "label": "Local - rsync from HHU Hilbert HPC to local - (LARGE) - Full 'outputs' directory",
             "command": "./grokking/scripts/hhu_hilbert/sync_data/rsync_selected_directories_from_hhu_hilbert.sh --folders 'outputs/'",
             "type": "shell",
             "group": {
