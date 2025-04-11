@@ -28,7 +28,8 @@ topological_analysis:
   create_projection_plot_every: 100
   max_number_of_topo_batches: 100
   sampling_seed: 778
-  number_of_samples: 1000
+  number_of_samples: 100
+  # number_of_samples: 1000
 
 wandb:
   use_wandb: true

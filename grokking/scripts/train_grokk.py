@@ -32,6 +32,7 @@ from dataclasses import dataclass
 from typing import Self
 
 import hydra
+import hydra.core
 import numpy as np
 import pandas as pd
 import torch
@@ -57,6 +58,10 @@ from grokking.typing.enums import Verbosity
 # Increase the wandb service wait time to prevent errors on HHU Hilbert.
 # https://github.com/wandb/wandb/issues/5214
 os.environ["WANDB__SERVICE_WAIT"] = "300"
+
+default_output_dir = pathlib.Path(
+    "outputs",
+)
 
 # Logger for this file
 global_logger: logging.Logger = create_and_configure_global_logger(
@@ -280,6 +285,7 @@ def generate_tsne_visualizations(
 
 def train(
     config: dict,
+    output_dir: os.PathLike = default_output_dir,
     verbosity: Verbosity = Verbosity.NORMAL,
     logger: logging.Logger = default_logger,
 ) -> None:
@@ -455,6 +461,10 @@ def train(
                     selected_hidden_states_list = []
                     selected_input_x_list = []
 
+                    # Note:
+                    # - Currently, we use the same dataloader in each iteration where this topological analysis is run.
+                    # - Thus, the embedded data is different for each iteration,
+                    #   since we keep stepping through the iterable dataset.
                     for topo_batch_index, (
                         topo_input_x,
                         topo_input_y,
@@ -463,7 +473,8 @@ def train(
                             dataset_for_topological_analysis.dataloader,
                         ),
                     ):
-                        # Break condition is necessary, because otherwise we would keep looping over the dataset and never stop
+                        # Break condition is necessary,
+                        # because otherwise we would keep looping over the dataset and never stop
                         if topo_batch_index >= topological_analysis_cfg["max_number_of_topo_batches"]:
                             break
 
@@ -572,9 +583,8 @@ def train(
 
                         local_estimates_plot_config = LocalEstminatesPlotConfig()
 
-                        # TODO: Place this into the hydra directory
                         saved_plots_local_estimates_root_dir = pathlib.Path(
-                            "outputs",
+                            output_dir,
                             "plots",
                             "local_estimates_projection",
                             f"{step+1=}",
@@ -690,11 +700,33 @@ def main(
             msg,
         )
 
+    cwd: pathlib.Path = pathlib.Path.cwd()
+    hydra_output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir  # type: ignore - problem with this import type
+
+    if verbosity >= Verbosity.NORMAL:
+        logger.info(
+            msg=f"Current working directory:\n{cwd = }",  # noqa: G004 - low overhead
+        )
+        logger.info(
+            msg=f"Hydra output directory:\n{hydra_output_dir = }",  # noqa: G004 - low overhead
+        )
+
+    if verbosity >= Verbosity.NORMAL:
+        logger.info(
+            msg="Calling train() function ...",
+        )
+
     train(
         config=cfg_as_container,
+        output_dir=hydra_output_dir,
         verbosity=verbosity,
         logger=logger,
     )
+
+    if verbosity >= Verbosity.NORMAL:
+        logger.info(
+            msg="Calling train() function DONE",
+        )
 
 
 if __name__ == "__main__":
