@@ -18,6 +18,7 @@ dependencies = [
     "hydra-zen>=0.14.0",
     "idna>=3.10",
     "kaleido<=0.2",
+    "matplotlib>=3.10.1",
     "numpy>=2.2.4",
     "olefile>=0.47",
     "omegaconf>=2.3.0",
@@ -28,8 +29,10 @@ dependencies = [
     "protobuf>=5.29.4",
     "psutil>=7.0.0",
     "python-dateutil>=2.9.0.post0",
+    "python-dotenv>=1.1.0",
     "pyyaml>=6.0.2",
     "requests>=2.32.3",
+    "scikit-dimension>=0.3.4",
     "scikit-learn>=1.6.1",
     "sentry-sdk>=2.25.0",
     "shortuuid>=1.0.13",
@@ -46,6 +49,7 @@ dependencies = [
     "urllib3>=2.3.0",
     "wandb>=0.19.8",
     "yaspin>=3.1.0",
+    "zarr>=3.0.6",
 ]
 
 [project.scripts]
