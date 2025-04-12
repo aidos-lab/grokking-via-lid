@@ -41,6 +41,9 @@ from torch.utils.data import DataLoader, IterableDataset
 from tqdm.auto import tqdm
 
 import wandb
+from grokking.analysis.local_estimates_computation.global_and_pointwise_local_estimates_computation import (
+    global_and_pointwise_local_estimates_computation,
+)
 from grokking.config_classes.local_estimates.plot_config import LocalEstminatesPlotConfig, PlotSavingConfig
 from grokking.grokk_replica.datasets import AbstractDataset
 from grokking.grokk_replica.grokk_model import GrokkModel
@@ -667,9 +670,22 @@ def do_topological_analysis_step(
             # # # #
             # Analyse the extracted hidden states
 
+            # TODO: Add this function call
+            #
+            # (
+            #     global_estimate_array_np,
+            #     pointwise_results_array_np,
+            # ) = global_and_pointwise_local_estimates_computation(
+            #     array_for_estimator=array_for_estimator,
+            #     local_estimates_config=main_config.local_estimates,
+            #     verbosity=verbosity,
+            #     logger=logger,
+            # )
+
             logger.warning(
                 msg="@@@ The analysis is not fully implemented yet!",
             )
+
             # TODO: Implement the analysis here
 
             # # # #

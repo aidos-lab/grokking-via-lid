@@ -46,3 +46,46 @@ class PreferredTorchBackend(StrEnum):
     CUDA = auto()
     MPS = auto()
     AUTO = auto()
+
+
+class NNeighborsMode(StrEnum):
+    """The different modes for specifying the number of neighbors in the pointwise estimate computation."""
+
+    ABSOLUTE_SIZE = auto()
+    RELATIVE_SIZE = auto()
+
+
+@unique
+class ZeroVectorHandlingMode(StrEnum):
+    """The different modes for handling zero vectors."""
+
+    KEEP = auto()
+    REMOVE = auto()
+
+
+@unique
+class DeduplicationMode(StrEnum):
+    """The different modes for deduplication."""
+
+    IDENTITY = auto()
+    ARRAY_DEDUPLICATOR = auto()
+
+
+@unique
+class ArtificialNoiseMode(StrEnum):
+    """Different modes for adding artificial noise to the data."""
+
+    DO_NOTHING = auto()
+    GAUSSIAN = auto()
+
+
+# ==============================
+# Enums used for local estimates
+# ==============================
+
+
+class EstimatorMethodType(StrEnum):
+    """The different types of methods for the estimator."""
+
+    TWONN = auto()
+    LPCA = auto()
