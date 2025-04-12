@@ -28,9 +28,11 @@
 """Compute global and local estimates from prepared embeddings."""
 
 import logging
+import pprint
+from typing import TYPE_CHECKING
 
 import numpy as np
-from skdim._commonfuncs import GlobalEstimator
+import pandas as pd
 
 from grokking.analysis.local_estimates_computation.estimator.get_estimator import (
     get_estimator_from_local_estimates_config,
@@ -41,6 +43,9 @@ from grokking.analysis.local_estimates_computation.get_n_neighbors_from_array_le
 from grokking.config_classes.local_estimates.local_estimates_config import LocalEstimatesConfig
 from grokking.logging.log_array_info import log_array_info
 from grokking.typing.enums import Verbosity
+
+if TYPE_CHECKING:
+    from skdim._commonfuncs import GlobalEstimator
 
 default_logger: logging.Logger = logging.getLogger(
     name=__name__,
@@ -158,4 +163,77 @@ def global_and_pointwise_local_estimates_computation(
             )
         global_estimate_array_np = None
 
-    return global_estimate_array_np, pointwise_results_array_np
+    return (
+        global_estimate_array_np,
+        pointwise_results_array_np,
+    )
+
+
+def create_additional_pointwise_results_statistics(
+    pointwise_results_array_np: np.ndarray,
+    truncation_size_range: range = range(
+        5_000,
+        60_001,
+        5_000,
+    ),
+    verbosity: Verbosity = Verbosity.NORMAL,
+    logger: logging.Logger = default_logger,
+) -> dict:
+    """Create additional statistics from the pointwise results array and other computation results."""
+    additional_pointwise_results_statistics: dict = {}
+
+    # We collect the statistics of the pointwise results array under a separate key.
+    # This allows for a more structured storage of the results and easier extension in the future.
+    subkey = "pointwise_results_array_np"
+    subdict: dict = make_array_statistics_dict(
+        array=pointwise_results_array_np,
+        array_name=subkey,
+    )
+
+    additional_pointwise_results_statistics[subkey] = subdict
+
+    # Add statistics of truncated pointwise results arrays
+    for truncation_size in truncation_size_range:
+        subkey: str = f"pointwise_results_array_np_truncated_first_{truncation_size}"
+        subdict: dict = make_array_statistics_dict(
+            array=pointwise_results_array_np[:truncation_size],
+            array_name=subkey,
+        )
+
+        additional_pointwise_results_statistics[subkey] = subdict
+
+    if verbosity >= Verbosity.NORMAL:
+        logger.info(
+            msg=f"additional_pointwise_results_statistics:\n"  # noqa: G004 - low overhead
+            f"{pprint.pformat(object=additional_pointwise_results_statistics)}",
+        )
+
+    return additional_pointwise_results_statistics
+
+
+def make_array_statistics_dict(
+    array: np.ndarray,
+    array_name: str,
+) -> dict:
+    """Create a dictionary with statistics about the array."""
+    array_statistics_dict: dict = {}
+
+    array_statistics_dict["array_name"] = array_name
+    array_statistics_dict["shape"] = array.shape
+    array_statistics_dict["np_mean"] = np.mean(
+        a=array,
+    )
+    array_statistics_dict["np_std"] = np.std(
+        a=array,
+    )
+
+    # Convert into a pandas DataFrame and save the describe() output.
+    # Note that numpy and pandas use different versions of the standard deviation,
+    # where pandas is the unbiased estimator with N-1 in the denominator,
+    # while numpy uses N.
+    pd_describe_df: pd.DataFrame = pd.DataFrame(
+        data=array,
+    ).describe()
+    array_statistics_dict["pd_describe"] = pd_describe_df.to_dict()
+
+    return array_statistics_dict

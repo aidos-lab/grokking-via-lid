@@ -18,6 +18,7 @@ dependencies = [
     "hydra-zen>=0.14.0",
     "idna>=3.10",
     "kaleido<=0.2",
+    "matplotlib>=3.10.1",
     "numpy>=2.2.4",
     "olefile>=0.47",
     "omegaconf>=2.3.0",

@@ -42,9 +42,12 @@ from tqdm.auto import tqdm
 
 import wandb
 from grokking.analysis.local_estimates_computation.global_and_pointwise_local_estimates_computation import (
+    create_additional_pointwise_results_statistics,
     global_and_pointwise_local_estimates_computation,
 )
+from grokking.config_classes.local_estimates.local_estimates_config import LocalEstimatesConfig
 from grokking.config_classes.local_estimates.plot_config import LocalEstminatesPlotConfig, PlotSavingConfig
+from grokking.config_classes.local_estimates.pointwise_config import LocalEstimatesPointwiseConfig
 from grokking.grokk_replica.datasets import AbstractDataset
 from grokking.grokk_replica.grokk_model import GrokkModel
 from grokking.grokk_replica.load_objs import load_item
@@ -57,7 +60,7 @@ from grokking.plotting.embedding_visualization.create_projection_plot import (
     create_projection_plot,
     save_projection_plot,
 )
-from grokking.typing.enums import Verbosity
+from grokking.typing.enums import NNeighborsMode, Verbosity
 
 # Increase the wandb service wait time to prevent errors on HHU Hilbert.
 # https://github.com/wandb/wandb/issues/5214
@@ -311,7 +314,12 @@ def train(
         logger=logger,
     )
 
-    if wandb_cfg["use_wandb"]:
+    use_wandb: bool = wandb_cfg["use_wandb"]
+
+    if use_wandb:
+        logger.info(
+            msg=f"Initializing wandb with project name: {wandb_cfg['wandb_project']}",  # noqa: G004 - low overhead
+        )
         wandb.init(
             project=wandb_cfg["wandb_project"],
             config=config,
@@ -446,7 +454,7 @@ def train(
                     msg=f"{out_log}",  # noqa: G004 - low overhead
                 )
 
-            if wandb_cfg["use_wandb"]:
+            if use_wandb:
                 wandb.log(
                     data=out_log,
                 )
@@ -562,7 +570,12 @@ def do_topological_analysis_step(
                     msg=f"Running topological analysis for {dataset_for_topological_analysis.split = } ...",  # noqa: G004 - low overhead
                 )
 
-                # This list will accumulate the hidden states
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg="Collecting hidden states ...",
+                )
+
+            # This list will accumulate the hidden states
             selected_hidden_states_list = []
             selected_input_x_list = []
 
@@ -643,8 +656,18 @@ def do_topological_analysis_step(
                     msg=f"Extracted hidden states container:\n{input_and_hidden_states_array!s}",  # noqa: G004 - low overhead
                 )
 
-                # # # #
-                # Preprocess the hidden states
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg="Collecting hidden states DONE",
+                )
+
+            # # # #
+            # Preprocess the hidden states
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg="Preprocessing hidden states ...",
+                )
+
             topo_number_of_samples = topological_analysis_cfg["number_of_samples"]
             topo_sampling_seed = topological_analysis_cfg["sampling_seed"]
 
@@ -667,26 +690,40 @@ def do_topological_analysis_step(
                     f"{input_and_hidden_states_array!s}",
                 )
 
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg="Preprocessing hidden states DONE",
+                )
+
             # # # #
             # Analyse the extracted hidden states
 
-            # TODO: Add this function call
-            #
-            # (
-            #     global_estimate_array_np,
-            #     pointwise_results_array_np,
-            # ) = global_and_pointwise_local_estimates_computation(
-            #     array_for_estimator=array_for_estimator,
-            #     local_estimates_config=main_config.local_estimates,
-            #     verbosity=verbosity,
-            #     logger=logger,
-            # )
-
-            logger.warning(
-                msg="@@@ The analysis is not fully implemented yet!",
+            # TODO: Compute multiple versions of the local estimates
+            local_estimates_config = LocalEstimatesConfig(
+                pointwise=LocalEstimatesPointwiseConfig(
+                    n_neighbors_mode=NNeighborsMode.ABSOLUTE_SIZE,
+                    absolute_n_neighbors=64,
+                ),
             )
 
-            # TODO: Implement the analysis here
+            (
+                global_estimate_array_np,
+                pointwise_results_array_np,
+            ) = global_and_pointwise_local_estimates_computation(
+                array_for_estimator=input_and_hidden_states_array.hidden_states,
+                local_estimates_config=local_estimates_config,
+                verbosity=verbosity,
+                logger=logger,
+            )
+
+            additional_pointwise_results_statistics: dict = create_additional_pointwise_results_statistics(
+                pointwise_results_array_np=pointwise_results_array_np,
+                truncation_size_range=range(500, 5_000, 500),
+                verbosity=verbosity,
+                logger=logger,
+            )
+
+            pass  # TODO: Add summary statistics for the estimates to the wandb logs
 
             # # # #
             # Optional plotting
@@ -718,7 +755,7 @@ def do_topological_analysis_step(
 
                 generate_tsne_visualizations(
                     input_and_hidden_states_array=input_and_hidden_states_array,
-                    pointwise_results_array_np=None,  # TODO: Replace with the actual results array once implemented
+                    pointwise_results_array_np=pointwise_results_array_np,
                     local_estimates_plot_config=local_estimates_plot_config,
                     saved_plots_local_estimates_projection_dir_absolute_path=saved_plots_local_estimates_root_dir,
                     verbosity=verbosity,
