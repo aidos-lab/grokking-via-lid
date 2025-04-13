@@ -24,13 +24,13 @@
 
 """Training script for Grokking models."""
 
-from itertools import product
 import logging
 import os
 import pathlib
 import pprint
 from copy import deepcopy
 from dataclasses import dataclass
+from itertools import product
 from typing import Self
 
 import hydra
@@ -621,21 +621,25 @@ def do_topological_analysis_step(
                 )
 
             topo_sampling_seed = topological_analysis_cfg["sampling_seed"]
+            number_of_samples_choices: list[int] = topological_analysis_cfg["number_of_samples_choices"]
             absolute_n_neighbors_choices: list[int] = topological_analysis_cfg["absolute_n_neighbors_choices"]
 
             # Note: This list can be extended with more parameters
             local_estimates_parameters_combinations = product(
+                number_of_samples_choices,
                 absolute_n_neighbors_choices,
             )
 
-            for (absolute_n_neighbors,) in tqdm(
+            for (
+                number_of_samples,
+                absolute_n_neighbors,
+            ) in tqdm(
                 local_estimates_parameters_combinations,
                 desc="Iterating over different parameters for local estimates ...",
             ):
-                # TODO: Compute multiple versions of the local estimates
                 local_estimates_config = LocalEstimatesConfig(
                     filtering=LocalEstimatesFilteringConfig(
-                        num_samples=topological_analysis_cfg["number_of_samples"],
+                        num_samples=number_of_samples,
                         deduplication_mode=DeduplicationMode.ARRAY_DEDUPLICATOR,
                     ),
                     pointwise=LocalEstimatesPointwiseConfig(

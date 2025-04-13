@@ -30,7 +30,9 @@ topological_analysis:
   create_projection_plot_every: 200
   max_number_of_topo_batches: 100
   sampling_seed: 778
-  number_of_samples: 1000
+  number_of_samples_choices: 
+  - 1000
+  - 3000
   absolute_n_neighbors_choices:
   - 32
   - 64
