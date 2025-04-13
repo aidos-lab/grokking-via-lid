@@ -418,6 +418,7 @@ def train(
         y,
     ) in enumerate(
         iterable=tqdm(train_dataloader),
+        desc="Training loop.",
     ):
         training_logs: dict = do_training_step(
             model=model,
@@ -550,7 +551,10 @@ def do_eval_step(
 
     with torch.no_grad():
         all_val_logs = []
-        for i, (val_x, val_y) in tqdm(enumerate(val_dataloader)):
+        for i, (val_x, val_y) in tqdm(
+            enumerate(iterable=val_dataloader),
+            desc="Evaluating validation data.",
+        ):
             if i >= train_cfg["eval_batches"]:
                 break
             (
@@ -635,7 +639,7 @@ def do_topological_analysis_step(
                 absolute_n_neighbors,
             ) in tqdm(
                 local_estimates_parameters_combinations,
-                desc="Iterating over different parameters for local estimates ...",
+                desc="Iterating over different parameters for local estimates.",
             ):
                 local_estimates_config = LocalEstimatesConfig(
                     filtering=LocalEstimatesFilteringConfig(
@@ -819,6 +823,7 @@ def collect_hidden_states(
     ) in enumerate(
         iterable=tqdm(
             dataset_for_topological_analysis.dataloader,
+            desc=f"Collecting hidden states for {dataset_for_topological_analysis.split = }",
         ),
     ):
         # Break condition is necessary,
