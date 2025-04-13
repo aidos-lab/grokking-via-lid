@@ -45,6 +45,7 @@ from grokking.analysis.local_estimates_computation.global_and_pointwise_local_es
     create_additional_pointwise_results_statistics,
     global_and_pointwise_local_estimates_computation,
 )
+from grokking.config_classes.local_estimates.filtering_config import LocalEstimatesFilteringConfig
 from grokking.config_classes.local_estimates.local_estimates_config import LocalEstimatesConfig
 from grokking.config_classes.local_estimates.plot_config import LocalEstminatesPlotConfig, PlotSavingConfig
 from grokking.config_classes.local_estimates.pointwise_config import LocalEstimatesPointwiseConfig
@@ -455,6 +456,24 @@ def train(
                 )
 
             if use_wandb:
+                # Example of the `out_log` dict:
+                #
+                # > {
+                # >     "val": {
+                # >         "loss": 4.6041805148124695,
+                # >         "accuracy": 0.00927734375,
+                # >         "attn_entropy": 0.7255031652748585,
+                # >         "param_norm": 121.61177041725013,
+                # >     },
+                # >     "train": {
+                # >         "loss": 4.638635158538818,
+                # >         "accuracy": 0.015625,
+                # >         "attn_entropy": 0.6404158473014832,
+                # >         "param_norm": 121.60770918646537,
+                # >     },
+                # >     "step": 10,
+                # >     "lr": 0.001,
+                # > }
                 wandb.log(
                     data=out_log,
                 )
@@ -480,6 +499,7 @@ def train(
                 topological_analysis_cfg=topological_analysis_cfg,
                 step=step,
                 topological_analysis_create_projection_plot_every=topological_analysis_create_projection_plot_every,
+                use_wandb=use_wandb,
                 device=device,
                 verbosity=verbosity,
                 logger=logger,
@@ -552,6 +572,8 @@ def do_topological_analysis_step(
     topological_analysis_cfg: dict,
     step: int,
     topological_analysis_create_projection_plot_every: int,
+    *,
+    use_wandb: bool = False,
     device: torch.device = default_device,
     verbosity: Verbosity = Verbosity.NORMAL,
     logger: logging.Logger = default_logger,
@@ -700,6 +722,9 @@ def do_topological_analysis_step(
 
             # TODO: Compute multiple versions of the local estimates
             local_estimates_config = LocalEstimatesConfig(
+                filtering=LocalEstimatesFilteringConfig(
+                    num_samples=topo_number_of_samples,
+                ),
                 pointwise=LocalEstimatesPointwiseConfig(
                     n_neighbors_mode=NNeighborsMode.ABSOLUTE_SIZE,
                     absolute_n_neighbors=64,
@@ -723,7 +748,30 @@ def do_topological_analysis_step(
                 logger=logger,
             )
 
-            pass  # TODO: Add summary statistics for the estimates to the wandb logs
+            topological_estimates_dict: dict = {
+                dataset_for_topological_analysis.split: {
+                    f"{local_estimates_config.config_description}"
+                    f"_{local_estimates_config.pointwise.config_description}": {
+                        "mean": pointwise_results_array_np.mean(),
+                        "std": pointwise_results_array_np.std(),
+                    },
+                },
+                "step": (step + 1),
+            }
+            if global_estimate_array_np is not None:
+                topological_estimates_dict["global"] = global_estimate_array_np[0]
+
+            if use_wandb:
+                wandb.log(
+                    data=topological_estimates_dict,
+                )
+
+                if verbosity >= Verbosity.NORMAL:
+                    logger.info(
+                        msg="Logged local estimates results to wandb.",
+                    )
+
+            # TODO: Save the local estimates results to a file
 
             # # # #
             # Optional plotting

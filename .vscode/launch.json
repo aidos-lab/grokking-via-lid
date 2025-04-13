@@ -21,8 +21,25 @@
             "args": [
                 "dataset.dataset_seed=42",
                 "dataset.frac_train=0.4",
+                "wandb.use_wandb=true",
                 "wandb.wandb_project=grokking_replica_debugging",
             ],
+        },
+        {
+            "name": "Train model - Local debugging - offline mode with wandb",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "grokking/scripts/train_grokk.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "dataset.dataset_seed=42",
+                "dataset.frac_train=0.4",
+                "wandb.wandb_project=grokking_replica_debugging",
+            ],
+            "env": {
+                "WANDB_MODE": "offline"
+            }
         },
         {
             "name": "Train model - Local debugging - without wandb",
