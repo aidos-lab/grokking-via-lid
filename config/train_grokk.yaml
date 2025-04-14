@@ -31,10 +31,8 @@ topological_analysis:
   max_number_of_topo_batches: 100
   sampling_seed: 778
   number_of_samples_choices: 
-  - 1000
   - 3000
   absolute_n_neighbors_choices:
-  - 32
   - 64
   - 128
 
