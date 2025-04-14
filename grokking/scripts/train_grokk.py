@@ -56,6 +56,8 @@ from grokking.grokk_replica.grokk_model import GrokkModel
 from grokking.grokk_replica.load_objs import load_item
 from grokking.grokk_replica.utils import combine_logs
 from grokking.logging.create_and_configure_global_logger import create_and_configure_global_logger
+from grokking.logging.log_model_info import log_model_info
+from grokking.model_handling.count_trainable_parameters import count_trainable_parameters
 from grokking.model_handling.get_torch_device import get_torch_device
 from grokking.model_handling.set_seed import set_seed
 from grokking.plotting.embedding_visualization.create_projected_data import create_projected_data
@@ -399,6 +401,14 @@ def train(
         logger.info(
             msg=f"model:\n{model}",  # noqa: G004 - low overhead
         )
+        logger.info(
+            msg=f"Number of trainable parameters: {count_trainable_parameters(model) = }",  # noqa: G004 - low overhead
+        )
+        log_model_info(
+            model=model,
+            model_name="model",
+            logger=logger,
+        )
 
     optim = torch.optim.AdamW(
         params=model.parameters(),
@@ -410,6 +420,14 @@ def train(
         optimizer=optim,
         lr_lambda=lambda s: min(s / train_cfg["warmup_steps"], 1),
     )
+
+    if verbosity >= Verbosity.NORMAL:
+        logger.info(
+            msg=f"optimizer:\n{optim}",  # noqa: G004 - low overhead
+        )
+        logger.info(
+            msg=f"lr_schedule:\n{lr_schedule}",  # noqa: G004 - low overhead
+        )
 
     # # # #
     # Training loop

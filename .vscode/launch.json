@@ -105,12 +105,17 @@
                 "--multirun",
                 "hydra/sweeper=basic",
                 "hydra/launcher=hpc_submission", // <-- Use this for HHU Hilbert HPC submission
-                "hydra.launcher.queue=CUDA",
-                // "hydra.launcher.template=RTX6000",
+                // >> DSML nodes:
+                "hydra.launcher.queue=DSML",
+                "hydra.launcher.template=DSML",
+                // >> GTX1080 nodes:
+                // "hydra.launcher.queue=CUDA",
                 // "hydra.launcher.template=GTX1080",
-                // TODO: Add options for DSML queue
+                // >> RTX6000 nodes:
+                // "hydra.launcher.queue=CUDA",
+                // "hydra.launcher.template=RTX6000",
                 "hydra.launcher.memory=32",
-                "hydra.launcher.ncpus=4",
+                "hydra.launcher.ncpus=2",
                 "hydra.launcher.ngpus=1",
                 "hydra.launcher.walltime=59:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
                 //    >> END: Hydra options
