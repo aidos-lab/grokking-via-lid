@@ -20,6 +20,7 @@
             "cwd": "${workspaceFolder}",
             "args": [
                 "dataset.dataset_seed=42",
+                //
                 "dataset.frac_train=0.4",
                 //
                 "wandb.use_wandb=true",
@@ -35,6 +36,7 @@
             "cwd": "${workspaceFolder}",
             "args": [
                 "dataset.dataset_seed=42",
+                //
                 "dataset.frac_train=0.4",
                 //
                 "wandb.use_wandb=true",
@@ -45,7 +47,7 @@
             }
         },
         {
-            "name": "Train model - Local debugging - without wandb",
+            "name": "Train model - Local debugging - default settings - mod_subtract_dataset - without wandb",
             "type": "debugpy",
             "request": "launch",
             "program": "grokking/scripts/train_grokk.py",
@@ -53,7 +55,10 @@
             "cwd": "${workspaceFolder}",
             "args": [
                 "dataset.dataset_seed=42",
+                //
                 "dataset.frac_train=0.4",
+                //
+                "train.weight_decay=0.0",
                 //
                 "wandb.use_wandb=false",
                 "wandb.wandb_project=grokking_replica_debugging", // <-- not relevant for running without wandb
@@ -101,7 +106,7 @@
                 "hydra.launcher.memory=32",
                 "hydra.launcher.ncpus=4",
                 "hydra.launcher.ngpus=1",
-                "hydra.launcher.walltime=24:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
+                "hydra.launcher.walltime=48:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
                 //    >> END: Hydra options
                 //
                 "dataset.dataset_seed=42",
@@ -132,11 +137,13 @@
                 "hydra.launcher.memory=32",
                 "hydra.launcher.ncpus=4",
                 "hydra.launcher.ngpus=1",
-                "hydra.launcher.walltime=24:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
+                "hydra.launcher.walltime=48:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
                 //    >> END: Hydra options
                 //
                 // "dataset.dataset_seed=42",
-                "dataset.dataset_seed=43,44",
+                // "dataset.dataset_seed=43,44",
+                "dataset.dataset_seed=45,46,47,48,49",
+                //
                 "dataset.frac_train=0.4",
                 //
                 "wandb.use_wandb=true",

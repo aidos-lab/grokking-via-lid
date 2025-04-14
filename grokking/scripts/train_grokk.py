@@ -417,8 +417,10 @@ def train(
         x,
         y,
     ) in enumerate(
-        iterable=tqdm(train_dataloader),
-        desc="Training loop.",
+        iterable=tqdm(
+            train_dataloader,
+            desc="Training loop.",
+        ),
     ):
         training_logs: dict = do_training_step(
             model=model,
