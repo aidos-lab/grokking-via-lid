@@ -28,7 +28,9 @@ import logging
 import os
 import pathlib
 import pprint
+from copy import deepcopy
 from dataclasses import dataclass
+from itertools import product
 from typing import Self
 
 import hydra
@@ -45,6 +47,7 @@ from grokking.analysis.local_estimates_computation.global_and_pointwise_local_es
     create_additional_pointwise_results_statistics,
     global_and_pointwise_local_estimates_computation,
 )
+from grokking.config_classes.local_estimates.filtering_config import LocalEstimatesFilteringConfig
 from grokking.config_classes.local_estimates.local_estimates_config import LocalEstimatesConfig
 from grokking.config_classes.local_estimates.plot_config import LocalEstminatesPlotConfig, PlotSavingConfig
 from grokking.config_classes.local_estimates.pointwise_config import LocalEstimatesPointwiseConfig
@@ -60,7 +63,7 @@ from grokking.plotting.embedding_visualization.create_projection_plot import (
     create_projection_plot,
     save_projection_plot,
 )
-from grokking.typing.enums import NNeighborsMode, Verbosity
+from grokking.typing.enums import DeduplicationMode, NNeighborsMode, Verbosity
 
 # Increase the wandb service wait time to prevent errors on HHU Hilbert.
 # https://github.com/wandb/wandb/issues/5214
@@ -414,7 +417,10 @@ def train(
         x,
         y,
     ) in enumerate(
-        iterable=tqdm(train_dataloader),
+        iterable=tqdm(
+            train_dataloader,
+            desc="Training loop.",
+        ),
     ):
         training_logs: dict = do_training_step(
             model=model,
@@ -455,6 +461,24 @@ def train(
                 )
 
             if use_wandb:
+                # Example of the `out_log` dict:
+                #
+                # > {
+                # >     "val": {
+                # >         "loss": 4.6041805148124695,
+                # >         "accuracy": 0.00927734375,
+                # >         "attn_entropy": 0.7255031652748585,
+                # >         "param_norm": 121.61177041725013,
+                # >     },
+                # >     "train": {
+                # >         "loss": 4.638635158538818,
+                # >         "accuracy": 0.015625,
+                # >         "attn_entropy": 0.6404158473014832,
+                # >         "param_norm": 121.60770918646537,
+                # >     },
+                # >     "step": 10,
+                # >     "lr": 0.001,
+                # > }
                 wandb.log(
                     data=out_log,
                 )
@@ -480,6 +504,7 @@ def train(
                 topological_analysis_cfg=topological_analysis_cfg,
                 step=step,
                 topological_analysis_create_projection_plot_every=topological_analysis_create_projection_plot_every,
+                use_wandb=use_wandb,
                 device=device,
                 verbosity=verbosity,
                 logger=logger,
@@ -528,7 +553,10 @@ def do_eval_step(
 
     with torch.no_grad():
         all_val_logs = []
-        for i, (val_x, val_y) in tqdm(enumerate(val_dataloader)):
+        for i, (val_x, val_y) in tqdm(
+            enumerate(iterable=val_dataloader),
+            desc="Evaluating validation data.",
+        ):
             if i >= train_cfg["eval_batches"]:
                 break
             (
@@ -552,6 +580,8 @@ def do_topological_analysis_step(
     topological_analysis_cfg: dict,
     step: int,
     topological_analysis_create_projection_plot_every: int,
+    *,
+    use_wandb: bool = False,
     device: torch.device = default_device,
     verbosity: Verbosity = Verbosity.NORMAL,
     logger: logging.Logger = default_logger,
@@ -575,86 +605,14 @@ def do_topological_analysis_step(
                     msg="Collecting hidden states ...",
                 )
 
-            # This list will accumulate the hidden states
-            selected_hidden_states_list = []
-            selected_input_x_list = []
-
-            # Note:
-            # - Currently, we use the same dataloader in each iteration where this topological analysis is run.
-            # - Thus, the embedded data is different for each iteration,
-            #   since we keep stepping through the iterable dataset.
-            for topo_batch_index, (
-                topo_input_x,
-                topo_input_y,
-            ) in enumerate(
-                iterable=tqdm(
-                    dataset_for_topological_analysis.dataloader,
-                ),
-            ):
-                # Break condition is necessary,
-                # because otherwise we would keep looping over the dataset and never stop
-                if topo_batch_index >= topological_analysis_cfg["max_number_of_topo_batches"]:
-                    break
-
-                (
-                    _,
-                    _,
-                    hidden_states_over_layers_list,
-                ) = model.forward(
-                    x=topo_input_x.to(device),
-                )
-
-                # Take the hidden states of the last layer.
-                # > hidden_states_single_layer.shape = torch.Size([512, 4, 128])
-                hidden_states_single_layer = hidden_states_over_layers_list[-1]
-
-                # Currently, we are only interested in the hidden states of the operands,
-                # i.e., we want to exclude the operation token "o" and the equality token "=":
-                # Only select the 0th and 2nd token embeddings in the batch.
-                # > only_operand_hidden_states.shape = torch.Size([512, 2, 128])
-                only_operand_hidden_states = hidden_states_single_layer[
-                    :,
-                    [0, 2],
-                    :,
-                ]
-
-                # Move the hidden states to the CPU and convert them to a numpy array
-                only_operand_hidden_states_np = only_operand_hidden_states.detach().cpu().numpy()
-                # Make this into a list of all the 128-dimensional hidden states:
-                # I.e., convert the shape from (512, 2, 128) to (512 * 2, 128)
-                only_operand_hidden_states_reshaped_np = only_operand_hidden_states_np.reshape(
-                    -1,
-                    only_operand_hidden_states_np.shape[-1],
-                )
-                # Turn this into a list of 128-dimensional hidden states:
-                only_operand_hidden_states_list = only_operand_hidden_states_reshaped_np.tolist()
-                # Extend the list of hidden states with the new hidden states:
-                selected_hidden_states_list.extend(only_operand_hidden_states_list)
-
-                corresponding_input_x_np = (
-                    topo_input_x[
-                        :,
-                        [0, 2],
-                    ]
-                    .detach()
-                    .cpu()
-                    .numpy()
-                ).reshape(
-                    -1,
-                )
-                # Extend the list of input x with the new input x:
-                selected_input_x_list.extend(corresponding_input_x_np.tolist())
-
-                # Create wrapper object
-            input_and_hidden_states_array = InputAndHiddenStatesArray(
-                input_x=selected_input_x_list,
-                hidden_states=np.array(selected_hidden_states_list),
+            input_and_hidden_states_array: InputAndHiddenStatesArray = collect_hidden_states(
+                model=model,
+                topological_analysis_cfg=topological_analysis_cfg,
+                dataset_for_topological_analysis=dataset_for_topological_analysis,
+                device=device,
+                verbosity=verbosity,
+                logger=logger,
             )
-            if verbosity >= Verbosity.NORMAL:
-                # The string representation of the object will print the shapes of the list and array.
-                logger.info(
-                    msg=f"Extracted hidden states container:\n{input_and_hidden_states_array!s}",  # noqa: G004 - low overhead
-                )
 
             if verbosity >= Verbosity.NORMAL:
                 logger.info(
@@ -668,104 +626,137 @@ def do_topological_analysis_step(
                     msg="Preprocessing hidden states ...",
                 )
 
-            topo_number_of_samples = topological_analysis_cfg["number_of_samples"]
             topo_sampling_seed = topological_analysis_cfg["sampling_seed"]
+            number_of_samples_choices: list[int] = topological_analysis_cfg["number_of_samples_choices"]
+            absolute_n_neighbors_choices: list[int] = topological_analysis_cfg["absolute_n_neighbors_choices"]
 
-            input_and_hidden_states_array.deduplicate_hidden_states()
-            if verbosity >= Verbosity.NORMAL:
-                logger.info(
-                    msg=f"After deduplication:\n"  # noqa: G004 - low overhead
-                    f"{input_and_hidden_states_array!s}",
-                )
-
-            input_and_hidden_states_array.subsample(
-                number_of_samples=topo_number_of_samples,
-                sampling_seed=topo_sampling_seed,
-                verbosity=verbosity,
-                logger=logger,
-            )
-            if verbosity >= Verbosity.NORMAL:
-                logger.info(
-                    msg=f"After subsampling:\n"  # noqa: G004 - low overhead
-                    f"{input_and_hidden_states_array!s}",
-                )
-
-            if verbosity >= Verbosity.NORMAL:
-                logger.info(
-                    msg="Preprocessing hidden states DONE",
-                )
-
-            # # # #
-            # Analyse the extracted hidden states
-
-            # TODO: Compute multiple versions of the local estimates
-            local_estimates_config = LocalEstimatesConfig(
-                pointwise=LocalEstimatesPointwiseConfig(
-                    n_neighbors_mode=NNeighborsMode.ABSOLUTE_SIZE,
-                    absolute_n_neighbors=64,
-                ),
+            # Note: This list can be extended with more parameters
+            local_estimates_parameters_combinations = product(
+                number_of_samples_choices,
+                absolute_n_neighbors_choices,
             )
 
-            (
-                global_estimate_array_np,
-                pointwise_results_array_np,
-            ) = global_and_pointwise_local_estimates_computation(
-                array_for_estimator=input_and_hidden_states_array.hidden_states,
-                local_estimates_config=local_estimates_config,
-                verbosity=verbosity,
-                logger=logger,
-            )
-
-            additional_pointwise_results_statistics: dict = create_additional_pointwise_results_statistics(
-                pointwise_results_array_np=pointwise_results_array_np,
-                truncation_size_range=range(500, 5_000, 500),
-                verbosity=verbosity,
-                logger=logger,
-            )
-
-            pass  # TODO: Add summary statistics for the estimates to the wandb logs
-
-            # # # #
-            # Optional plotting
-            if (
-                topological_analysis_create_projection_plot_every > 0
-                and (step + 1) % topological_analysis_create_projection_plot_every == 0
+            for (
+                number_of_samples,
+                absolute_n_neighbors,
+            ) in tqdm(
+                local_estimates_parameters_combinations,
+                desc="Iterating over different parameters for local estimates.",
             ):
-                if verbosity >= Verbosity.NORMAL:
-                    logger.info(
-                        msg="Creating projection plot ...",
-                    )
-
-                local_estimates_plot_config = LocalEstminatesPlotConfig(
-                    pca_n_components=None,  # Skip the PCA step
-                    saving=PlotSavingConfig(
-                        save_html=False,  # Since the .html is quite large, we skip saving it for now
-                        save_pdf=True,
-                        save_csv=True,
+                local_estimates_config = LocalEstimatesConfig(
+                    filtering=LocalEstimatesFilteringConfig(
+                        num_samples=number_of_samples,
+                        deduplication_mode=DeduplicationMode.ARRAY_DEDUPLICATOR,
+                    ),
+                    pointwise=LocalEstimatesPointwiseConfig(
+                        n_neighbors_mode=NNeighborsMode.ABSOLUTE_SIZE,
+                        absolute_n_neighbors=absolute_n_neighbors,
                     ),
                 )
 
-                saved_plots_local_estimates_root_dir = pathlib.Path(
-                    output_dir,
-                    "plots",
-                    "local_estimates_projection",
-                    f"{step+1=}",
-                    f"{dataset_for_topological_analysis.split=}",
-                )
-
-                generate_tsne_visualizations(
+                input_and_hidden_states_array_preprocessed: InputAndHiddenStatesArray = preprocess_hidden_states(
                     input_and_hidden_states_array=input_and_hidden_states_array,
-                    pointwise_results_array_np=pointwise_results_array_np,
-                    local_estimates_plot_config=local_estimates_plot_config,
-                    saved_plots_local_estimates_projection_dir_absolute_path=saved_plots_local_estimates_root_dir,
+                    topo_sampling_seed=topo_sampling_seed,
+                    local_estimates_config=local_estimates_config,
                     verbosity=verbosity,
                     logger=logger,
                 )
 
                 if verbosity >= Verbosity.NORMAL:
                     logger.info(
-                        msg="Creating projection plot DONE",
+                        msg="Preprocessing hidden states DONE",
                     )
+
+                # # # #
+                # Analyse the extracted hidden states
+
+                (
+                    global_estimate_array_np,
+                    pointwise_results_array_np,
+                ) = global_and_pointwise_local_estimates_computation(
+                    array_for_estimator=input_and_hidden_states_array_preprocessed.hidden_states,
+                    local_estimates_config=local_estimates_config,
+                    verbosity=verbosity,
+                    logger=logger,
+                )
+
+                additional_pointwise_results_statistics: dict = create_additional_pointwise_results_statistics(
+                    pointwise_results_array_np=pointwise_results_array_np,
+                    truncation_size_range=range(500, 5_000, 500),
+                    verbosity=verbosity,
+                    logger=logger,
+                )
+
+                topological_estimates_dict: dict = {
+                    dataset_for_topological_analysis.split: {
+                        f"{local_estimates_config.config_description}": {
+                            f"{local_estimates_config.pointwise.config_description}": {
+                                "mean": pointwise_results_array_np.mean(),
+                                "std": pointwise_results_array_np.std(),
+                            },
+                            # The global estimate does not depend on the pointwise config.
+                            # If available, the global estimate array contains only a single element.
+                            "global": global_estimate_array_np[0] if global_estimate_array_np is not None else None,
+                        },
+                    },
+                    "step": (step + 1),
+                }
+
+                if use_wandb:
+                    wandb.log(
+                        data=topological_estimates_dict,
+                    )
+
+                    if verbosity >= Verbosity.NORMAL:
+                        logger.info(
+                            msg="Logged local estimates results to wandb.",
+                        )
+
+                # TODO: Save the local estimates results to a file
+
+                # # # #
+                # Optional plotting
+                if (
+                    topological_analysis_create_projection_plot_every > 0
+                    and (step + 1) % topological_analysis_create_projection_plot_every == 0
+                ):
+                    if verbosity >= Verbosity.NORMAL:
+                        logger.info(
+                            msg="Creating projection plot ...",
+                        )
+
+                    local_estimates_plot_config = LocalEstminatesPlotConfig(
+                        pca_n_components=None,  # Skip the PCA step
+                        saving=PlotSavingConfig(
+                            save_html=False,  # Since the .html is quite large, we skip saving it for now
+                            save_pdf=True,
+                            save_csv=True,
+                        ),
+                    )
+
+                    saved_plots_local_estimates_root_dir = pathlib.Path(
+                        output_dir,
+                        "plots",
+                        "local_estimates_projection",
+                        local_estimates_config.config_description,
+                        local_estimates_config.pointwise.config_description,
+                        f"{step+1=}",
+                        f"{dataset_for_topological_analysis.split=}",
+                    )
+
+                    generate_tsne_visualizations(
+                        input_and_hidden_states_array=input_and_hidden_states_array_preprocessed,
+                        pointwise_results_array_np=pointwise_results_array_np,
+                        local_estimates_plot_config=local_estimates_plot_config,
+                        saved_plots_local_estimates_projection_dir_absolute_path=saved_plots_local_estimates_root_dir,
+                        verbosity=verbosity,
+                        logger=logger,
+                    )
+
+                    if verbosity >= Verbosity.NORMAL:
+                        logger.info(
+                            msg="Creating projection plot DONE",
+                        )
 
             logger.info(
                 msg=f"Running topological analysis for {dataset_for_topological_analysis.split = } ...",  # noqa: G004 - low overhead
@@ -777,6 +768,132 @@ def do_topological_analysis_step(
         logger.info(
             msg=f"Running topological analysis for {step + 1 = } DONE",  # noqa: G004 - low overhead
         )
+
+
+def preprocess_hidden_states(
+    input_and_hidden_states_array: InputAndHiddenStatesArray,
+    topo_sampling_seed: int,
+    local_estimates_config: LocalEstimatesConfig,
+    verbosity: Verbosity,
+    logger: logging.Logger,
+) -> InputAndHiddenStatesArray:
+    temp_input_and_hidden_states_array: InputAndHiddenStatesArray = deepcopy(
+        x=input_and_hidden_states_array,
+    )
+
+    temp_input_and_hidden_states_array.deduplicate_hidden_states()
+    if verbosity >= Verbosity.NORMAL:
+        logger.info(
+            msg=f"After deduplication:\n"  # noqa: G004 - low overhead
+            f"{temp_input_and_hidden_states_array!s}",
+        )
+
+    temp_input_and_hidden_states_array.subsample(
+        number_of_samples=local_estimates_config.filtering.num_samples,
+        sampling_seed=topo_sampling_seed,
+        verbosity=verbosity,
+        logger=logger,
+    )
+    if verbosity >= Verbosity.NORMAL:
+        logger.info(
+            msg=f"After subsampling:\n"  # noqa: G004 - low overhead
+            f"{temp_input_and_hidden_states_array!s}",
+        )
+
+    return temp_input_and_hidden_states_array
+
+
+def collect_hidden_states(
+    model: torch.nn.Module,
+    topological_analysis_cfg: dict,
+    dataset_for_topological_analysis: DatasetForTopologicalAnalysis,
+    device: torch.device = default_device,
+    verbosity: Verbosity = Verbosity.NORMAL,
+    logger: logging.Logger = default_logger,
+) -> InputAndHiddenStatesArray:
+    # This list will accumulate the hidden states
+    selected_hidden_states_list: list = []
+    selected_input_x_list: list = []
+
+    # Note:
+    # - Currently, we use the same dataloader in each iteration where this topological analysis is run.
+    # - Thus, the embedded data is different for each iteration,
+    #   since we keep stepping through the iterable dataset.
+    for topo_batch_index, (
+        topo_input_x,
+        topo_input_y,
+    ) in enumerate(
+        iterable=tqdm(
+            dataset_for_topological_analysis.dataloader,
+            desc=f"Collecting hidden states for {dataset_for_topological_analysis.split = }",
+        ),
+    ):
+        # Break condition is necessary,
+        # because otherwise we would keep looping over the dataset and never stop
+        if topo_batch_index >= topological_analysis_cfg["max_number_of_topo_batches"]:
+            break
+
+        (
+            _,
+            _,
+            hidden_states_over_layers_list,
+        ) = model.forward(
+            x=topo_input_x.to(device),
+        )
+
+        # Take the hidden states of the last layer.
+        # > hidden_states_single_layer.shape = torch.Size([512, 4, 128])
+        hidden_states_single_layer = hidden_states_over_layers_list[-1]
+
+        # Currently, we are only interested in the hidden states of the operands,
+        # i.e., we want to exclude the operation token "o" and the equality token "=":
+        # Only select the 0th and 2nd token embeddings in the batch.
+        # > only_operand_hidden_states.shape = torch.Size([512, 2, 128])
+        only_operand_hidden_states = hidden_states_single_layer[
+            :,
+            [0, 2],
+            :,
+        ]
+
+        # Move the hidden states to the CPU and convert them to a numpy array
+        only_operand_hidden_states_np = only_operand_hidden_states.detach().cpu().numpy()
+        # Make this into a list of all the 128-dimensional hidden states:
+        # I.e., convert the shape from (512, 2, 128) to (512 * 2, 128)
+        only_operand_hidden_states_reshaped_np = only_operand_hidden_states_np.reshape(
+            -1,
+            only_operand_hidden_states_np.shape[-1],
+        )
+        # Turn this into a list of 128-dimensional hidden states:
+        only_operand_hidden_states_list = only_operand_hidden_states_reshaped_np.tolist()
+        # Extend the list of hidden states with the new hidden states:
+        selected_hidden_states_list.extend(only_operand_hidden_states_list)
+
+        corresponding_input_x_np = (
+            topo_input_x[
+                :,
+                [0, 2],
+            ]
+            .detach()
+            .cpu()
+            .numpy()
+        ).reshape(
+            -1,
+        )
+        # Extend the list of input x with the new input x:
+        selected_input_x_list.extend(corresponding_input_x_np.tolist())
+
+    # Create wrapper object
+    input_and_hidden_states_array = InputAndHiddenStatesArray(
+        input_x=selected_input_x_list,
+        hidden_states=np.array(selected_hidden_states_list),
+    )
+    if verbosity >= Verbosity.NORMAL:
+        # The string representation of the object will print the shapes of the list and array.
+        logger.info(
+            msg=f"Extracted hidden states container:\n{input_and_hidden_states_array!s}",  # noqa: G004 - low overhead
+        )
+
+    return input_and_hidden_states_array
 
 
 @hydra.main(
