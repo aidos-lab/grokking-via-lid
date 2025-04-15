@@ -452,6 +452,10 @@ def train(
             desc="Training loop.",
         ),
     ):
+        # TODO: Log an example batch
+        # For decoding an example sequence:
+        # > train_dataloader.dataset.dataset.decode(x[0])
+
         # # # #
         # Optionally: Save the model, optimizer and dataloader
         save_checkpoints_every = train_cfg["save_checkpoints_every"]
@@ -464,6 +468,7 @@ def train(
                     msg=f"Saving checkpoint for {step = } ...",  # noqa: G004 - low overhead
                 )
 
+            # TODO: Implement the model saving
             logger.warning(
                 msg="Saving is not fully implemented yet!",
             )
