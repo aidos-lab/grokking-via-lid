@@ -23,6 +23,14 @@
                 //
                 "dataset.frac_train=0.4",
                 //
+                // "train.weight_decay=0.0", // <-- No weight decay
+                // "train.weight_decay=0.01", // <-- Regular weight decay
+                "train.weight_decay=0.1", // <-- Large weight decay
+                //
+                "train.max_steps=1000000", // <-- 1 million steps
+                "topological_analysis.compute_estimates_every=100", // <-- compute local estimates only in large intervals
+                "topological_analysis.create_projection_plot_every=1000", // <-- For debugging, create projection plots more regularly
+                //
                 "wandb.use_wandb=true",
                 "wandb.wandb_project=grokking_replica_debugging",
             ],
@@ -68,7 +76,7 @@
             }
         },
         {
-            "name": "Train model - Local debugging multirun joblib launcher - without wandb",
+            "name": "Train model - Local debugging - multirun - without wandb",
             "type": "debugpy",
             "request": "launch",
             "program": "grokking/scripts/train_grokk.py",
@@ -77,9 +85,11 @@
             "args": [
                 "--multirun",
                 "hydra/launcher=basic",
-                // "hydra/launcher=joblib",
+                // "hydra/launcher=joblib", // <-- Note: Currently, the joblib launcher is not working locally.
                 //
                 "dataset.frac_train=0.4",
+                //
+                "train.weight_decay=0.01",
                 //
                 "wandb.use_wandb=false",
                 "wandb.wandb_project=grokking_replica_debugging", // <-- not relevant for running without wandb
@@ -88,8 +98,50 @@
                 "WANDB_DISABLED": "true"
             }
         },
+        // Note: Even though this page claims that the maximum duration of a GPU-Job is 47:59:59, we can sucessfully submit jobs with a duration of 59:00:00.
+        // https://wiki.hhu.de/display/HPC/Besonderheiten
         {
-            "name": "Train model - HHU Hilbert HPC submission - Single Setup",
+            "name": "Train model - HHU Hilbert HPC submission - Single Setup - without wandb",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "grokking/scripts/train_grokk.py",
+            "console": "integratedTerminal",
+            "args": [
+                //    >> START: Hydra options
+                "--multirun",
+                "hydra/sweeper=basic",
+                "hydra/launcher=hpc_submission", // <-- Use this for HHU Hilbert HPC submission
+                // >> DSML nodes:
+                "hydra.launcher.queue=DSML",
+                "hydra.launcher.template=DSML",
+                // >> GTX1080 nodes:
+                // "hydra.launcher.queue=CUDA",
+                // "hydra.launcher.template=GTX1080",
+                // >> RTX6000 nodes:
+                // "hydra.launcher.queue=CUDA",
+                // "hydra.launcher.template=RTX6000",
+                "hydra.launcher.memory=32",
+                "hydra.launcher.ncpus=2",
+                "hydra.launcher.ngpus=1",
+                "hydra.launcher.walltime=59:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
+                //    >> END: Hydra options
+                //
+                "dataset.dataset_seed=42",
+                //
+                "dataset.frac_train=0.4",
+                //
+                "train.weight_decay=0.01",
+                //
+                "wandb.use_wandb=false",
+                "wandb.wandb_project=without_wandb",
+            ],
+            "env": {
+                "WANDB_DISABLED": "true",
+                "PYTORCH_ENABLE_MPS_FALLBACK": "1"
+            }
+        },
+        {
+            "name": "Train model - HHU Hilbert HPC submission - Single Setup - with wandb",
             "type": "debugpy",
             "request": "launch",
             "program": "grokking/scripts/train_grokk.py",
@@ -100,16 +152,23 @@
                 "hydra/sweeper=basic",
                 // "hydra/launcher=basic", // <-- Use this for local submission
                 "hydra/launcher=hpc_submission", // <-- Use this for HHU Hilbert HPC submission
+                // >> DSML nodes:
+                // "hydra.launcher.queue=DSML",
+                // "hydra.launcher.template=DSML",
+                // >> GTX1080 nodes:
                 "hydra.launcher.queue=CUDA",
-                // "hydra.launcher.template=RTX6000",
                 "hydra.launcher.template=GTX1080",
+                // >> RTX6000 nodes:
+                // "hydra.launcher.queue=CUDA",
+                // "hydra.launcher.template=RTX6000",
                 "hydra.launcher.memory=32",
                 "hydra.launcher.ncpus=4",
                 "hydra.launcher.ngpus=1",
-                "hydra.launcher.walltime=48:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
+                "hydra.launcher.walltime=59:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
                 //    >> END: Hydra options
                 //
                 "dataset.dataset_seed=42",
+                //
                 "dataset.frac_train=0.4",
                 //
                 "wandb.use_wandb=true",
@@ -131,23 +190,80 @@
                 "hydra/sweeper=basic",
                 // "hydra/launcher=basic", // <-- Use this for local submission
                 "hydra/launcher=hpc_submission", // <-- Use this for HHU Hilbert HPC submission
+                // >> DSML nodes:
+                // "hydra.launcher.queue=DSML",
+                // "hydra.launcher.template=DSML",
+                // >> GTX1080 nodes:
                 "hydra.launcher.queue=CUDA",
-                // "hydra.launcher.template=RTX6000",
                 "hydra.launcher.template=GTX1080",
+                // >> RTX6000 nodes:
+                // "hydra.launcher.queue=CUDA",
+                // "hydra.launcher.template=RTX6000",
                 "hydra.launcher.memory=32",
                 "hydra.launcher.ncpus=4",
                 "hydra.launcher.ngpus=1",
-                "hydra.launcher.walltime=48:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
+                "hydra.launcher.walltime=59:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
                 //    >> END: Hydra options
                 //
                 // "dataset.dataset_seed=42",
-                // "dataset.dataset_seed=43,44",
-                "dataset.dataset_seed=45,46,47,48,49",
+                // "dataset.dataset_seed=43,44", // <-- Two additional seeds
+                "dataset.dataset_seed=43,44,45,46", // <-- Four additional seeds
+                // "dataset.dataset_seed=42,43,44,45,46", // <-- Five seeds
                 //
                 "dataset.frac_train=0.4",
                 //
+                "train.weight_decay=0.01",
+                //
                 "wandb.use_wandb=true",
                 "wandb.wandb_project=grokking_replica_HHU_Hilbert_HPC_runs",
+            ],
+            "env": {
+                "PYTORCH_ENABLE_MPS_FALLBACK": "1"
+            }
+        },
+        {
+            "name": "Train model - HHU Hilbert HPC submission - Very long runs; Multiple dataset seeds; With and without weight decay",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "grokking/scripts/train_grokk.py",
+            "console": "integratedTerminal",
+            "args": [
+                //    >> START: Hydra options
+                "--multirun",
+                "hydra/sweeper=basic",
+                // "hydra/launcher=basic", // <-- Use this for local submission
+                "hydra/launcher=hpc_submission", // <-- Use this for HHU Hilbert HPC submission
+                // >> DSML nodes:
+                "hydra.launcher.queue=DSML",
+                "hydra.launcher.template=DSML",
+                // >> GTX1080 nodes:
+                // "hydra.launcher.queue=CUDA",
+                // "hydra.launcher.template=GTX1080",
+                // >> RTX6000 nodes:
+                // "hydra.launcher.queue=CUDA",
+                // "hydra.launcher.template=RTX6000",
+                "hydra.launcher.memory=32",
+                "hydra.launcher.ncpus=2",
+                "hydra.launcher.ngpus=1",
+                "hydra.launcher.walltime=59:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
+                //    >> END: Hydra options
+                //
+                // "dataset.dataset_seed=42",
+                // "dataset.dataset_seed=43,44", // <-- Two additional seeds
+                "dataset.dataset_seed=43,44,45,46", // <-- Four additional seeds
+                // "dataset.dataset_seed=42,43,44,45,46", // <-- Five seeds
+                //
+                "dataset.frac_train=0.4",
+                //
+                "train.weight_decay=0.0,0.01", // <-- Two different weight decay values
+                //
+                // > Parameters for very long runs
+                "train.max_steps=5000000", // <-- 5 million steps
+                "topological_analysis.compute_estimates_every=100", // <-- compute local estimates only in large intervals
+                "topological_analysis.create_projection_plot_every=10000", // <-- create projection plot only in large intervals
+                //
+                "wandb.use_wandb=true",
+                "wandb.wandb_project=grokking_replica_HHU_Hilbert_HPC_runs_very_long",
             ],
             "env": {
                 "PYTORCH_ENABLE_MPS_FALLBACK": "1"
