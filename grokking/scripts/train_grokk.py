@@ -127,6 +127,16 @@ class GroupDataset(IterableDataset):
         torch.Tensor,
         torch.Tensor,
     ]:
+        # Example outputs of the fetch function for mod_sum_dataset dataset with p=96:
+        # > ([29, 0, 32, 1], 57, [27, 'o', 30, '=', 57])
+        # > ([27, 0, 37, 1], 60, [25, 'o', 35, '=', 60])
+        # > ([92, 0, 40, 1], 32, [90, 'o', 38, '=', 32])
+        # Note that the input_ids for the operands are in the range [2, p + 1],
+        # since the operator 'o' corresponds to input_id 0 and the equality '=' to input_id 1.
+        # The values of y are in the range [0, p - 1],
+        # since the model output is predicting only in the operand range,
+        # also compare with the 96-dimensional output layer:
+        # > (output): Linear(in_features=128, out_features=96, bias=True)
         (
             x,
             y,
@@ -425,8 +435,10 @@ def train(
         logger.info(
             msg=f"optimizer:\n{optim}",  # noqa: G004 - low overhead
         )
+        # Note: The lr_schedule does not have a useful string representation,
+        # so we just print the class name.
         logger.info(
-            msg=f"lr_schedule:\n{lr_schedule}",  # noqa: G004 - low overhead
+            msg=f"lr_schedule:\n{lr_schedule.__class__.__name__}",  # noqa: G004 - low overhead
         )
 
     # # # #
@@ -440,6 +452,27 @@ def train(
             desc="Training loop.",
         ),
     ):
+        # # # #
+        # Optionally: Save the model, optimizer and dataloader
+        save_checkpoints_every = train_cfg["save_checkpoints_every"]
+
+        if save_checkpoints_every > 0 and step % save_checkpoints_every == 0:
+            # Note: We use `step` instead of `step + 1` here,
+            # because we want to also save the model for step == 0, i.e., at the beginning of training.
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"Saving checkpoint for {step = } ...",  # noqa: G004 - low overhead
+                )
+
+            logger.warning(
+                msg="Saving is not fully implemented yet!",
+            )
+
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"Saving checkpoint for {step = } DONE",  # noqa: G004 - low overhead
+                )
+
         training_logs: dict = do_training_step(
             model=model,
             optim=optim,

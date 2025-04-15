@@ -67,6 +67,29 @@
                 "dataset.frac_train=0.4",
                 //
                 "train.weight_decay=0.0",
+                "train.save_checkpoints_every=50", // <-- For debugging the saving function: Save checkpoints more regularly 
+                //
+                "wandb.use_wandb=false",
+                "wandb.wandb_project=grokking_replica_debugging", // <-- not relevant for running without wandb
+            ],
+            "env": {
+                "WANDB_DISABLED": "true"
+            }
+        },
+        {
+            "name": "Train model - Local debugging - default settings - mod_sum_dataset - without wandb",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "grokking/scripts/train_grokk.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "dataset=mod_sum_dataset",
+                "dataset.dataset_seed=42",
+                "dataset.frac_train=0.4",
+                //
+                "train.weight_decay=0.0",
+                "train.save_checkpoints_every=50", // <-- For debugging the saving function: Save checkpoints more regularly 
                 //
                 "wandb.use_wandb=false",
                 "wandb.wandb_project=grokking_replica_debugging", // <-- not relevant for running without wandb
