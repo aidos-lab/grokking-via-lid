@@ -1,0 +1,6 @@
+defaults:
+  - _self_
+
+training:
+  log_example_batch_every: 1000
+  number_of_entries_in_example_batch: 10

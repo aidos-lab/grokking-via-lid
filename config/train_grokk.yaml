@@ -1,5 +1,6 @@
 defaults:
   - dataset: mod_subtract_dataset
+  - logging: default
   - model: grokk_model
   - _self_
 

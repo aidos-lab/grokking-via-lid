@@ -318,9 +318,10 @@ def train(
             msg=f"Using config:\n{pprint.pformat(config)}",  # noqa: G004 - low overhead
         )
 
-    train_cfg = config["train"]
-    wandb_cfg = config["wandb"]
+    train_cfg: dict = config["train"]
+    logging_cfg: dict = config["logging"]
     topological_analysis_cfg: dict = config["topological_analysis"]
+    wandb_cfg: dict = config["wandb"]
 
     # Use the global seed to initialize the random number generators and torch initialization.
     global_seed = train_cfg["global_seed"]
@@ -441,6 +442,12 @@ def train(
             msg=f"lr_schedule:\n{lr_schedule.__class__.__name__}",  # noqa: G004 - low overhead
         )
 
+    training_log_example_batch_every = logging_cfg["training"]["log_example_batch_every"]
+    number_of_entries_in_example_batch = logging_cfg["training"]["number_of_entries_in_example_batch"]
+    save_checkpoints_every = train_cfg["save_checkpoints_every"]
+    topological_analysis_compute_estimates_every = topological_analysis_cfg["compute_estimates_every"]
+    topological_analysis_create_projection_plot_every = topological_analysis_cfg["create_projection_plot_every"]
+
     # # # #
     # Training loop
     for step, (
@@ -452,13 +459,31 @@ def train(
             desc="Training loop.",
         ),
     ):
-        # TODO: Log an example batch
-        # For decoding an example sequence:
-        # > train_dataloader.dataset.dataset.decode(x[0])
+        if training_log_example_batch_every > 0 and step % training_log_example_batch_every == 0:
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"Logging example batch for {step = } ...",  # noqa: G004 - low overhead
+                )
+                logger.info(
+                    msg=f"{x.shape = }; {y.shape = }",  # noqa: G004 - low overhead
+                )
+
+            # Comment about decoding:
+            # `train_dataloader.dataset` is a GroupDataset, we need to go one level deeper to access the instance
+            # which inherits from AbstractDataset and provides the decode method.
+            # > train_dataloader.dataset.dataset.decode(x[0])
+            # Here we still have access to the original dataset, so we can just use this for decoding.
+
+            # TODO: Collect number_of_entries_in_example_batch examples, together with y values, and decode them, collect in dataframe
+            # TODO: Log the resulting dataframe in a nicely formatted table
+
+            example_batch_decoded = dataset.decode(x[0])
+            logger.info(
+                msg=f"Example batch decoded: {example_batch_decoded}",  # noqa: G004 - low overhead
+            )
 
         # # # #
         # Optionally: Save the model, optimizer and dataloader
-        save_checkpoints_every = train_cfg["save_checkpoints_every"]
 
         if save_checkpoints_every > 0 and step % save_checkpoints_every == 0:
             # Note: We use `step` instead of `step + 1` here,
@@ -546,8 +571,6 @@ def train(
 
         # # # #
         # Embedding space analysis step
-        topological_analysis_compute_estimates_every = topological_analysis_cfg["compute_estimates_every"]
-        topological_analysis_create_projection_plot_every = topological_analysis_cfg["create_projection_plot_every"]
 
         if (
             topological_analysis_compute_estimates_every > 0
