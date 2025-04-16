@@ -30,6 +30,7 @@ import pathlib
 import pprint
 from copy import deepcopy
 from dataclasses import dataclass
+from io import StringIO
 from itertools import product
 from typing import Self
 
@@ -39,6 +40,9 @@ import numpy as np
 import pandas as pd
 import torch
 from omegaconf import DictConfig, OmegaConf
+from rich.console import Console, ConsoleOptions, RenderResult
+from rich.table import Table
+from rich.text import Text
 from torch.utils.data import DataLoader, IterableDataset
 from tqdm.auto import tqdm
 
@@ -84,6 +88,42 @@ default_logger: logging.Logger = logging.getLogger(
     name=__name__,
 )
 default_device: torch.device = torch.device(device="cpu")
+
+
+def rich_table_to_string(
+    df: pd.DataFrame,
+    max_rows: int = 10,
+    max_col_width: int = 30,
+) -> str:
+    """Convert a pandas DataFrame into a rich-formatted string table.
+
+    Args:
+        df: The DataFrame to convert.
+        max_rows: Maximum number of rows to show.
+        max_col_width: Maximum character width per column (truncate otherwise).
+
+    Returns:
+        A string containing the rich-formatted table.
+
+    """
+    table = Table(show_header=True, header_style="bold cyan")
+
+    for column in df.columns:
+        table.add_column(str(column), style="magenta", max_width=max_col_width)
+
+    # Optionally truncate the DataFrame to avoid huge logs
+    display_df = df.head(max_rows)
+
+    for _, row in display_df.iterrows():
+        formatted_row = [
+            str(val) if len(str(val)) <= max_col_width else str(val)[: max_col_width - 3] + "..." for val in row
+        ]
+        table.add_row(*formatted_row)
+
+    # Capture the printed output into a string buffer
+    console = Console(file=StringIO(), width=100)
+    console.print(table)
+    return console.file.getvalue()
 
 
 class GroupDataset(IterableDataset):
@@ -474,13 +514,31 @@ def train(
             # > train_dataloader.dataset.dataset.decode(x[0])
             # Here we still have access to the original dataset, so we can just use this for decoding.
 
-            # TODO: Collect number_of_entries_in_example_batch examples, together with y values, and decode them, collect in dataframe
-            # TODO: Log the resulting dataframe in a nicely formatted table
-
-            example_batch_decoded = dataset.decode(x[0])
-            logger.info(
-                msg=f"Example batch decoded: {example_batch_decoded}",  # noqa: G004 - low overhead
+            number_of_entries_to_log: int = min(
+                number_of_entries_in_example_batch,
+                len(x),
             )
+            collected_examples_list: list = [
+                batch_to_table_entry(
+                    x=x,
+                    y=y,
+                    index=i,
+                    dataset=dataset,
+                )
+                for i in range(number_of_entries_to_log)
+            ]
+            collected_examples_df: pd.DataFrame = pd.DataFrame(
+                data=collected_examples_list,
+            )
+
+            table_str: str = rich_table_to_string(
+                df=collected_examples_df,
+                max_rows=number_of_entries_in_example_batch,
+            )
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"Example batch for {step = }:\n{table_str}",  # noqa: G004 - low overhead
+                )
 
         # # # #
         # Optionally: Save the model, optimizer and dataloader
@@ -595,6 +653,21 @@ def train(
         # Break condition
         if train_cfg["max_steps"] is not None and step >= train_cfg["max_steps"]:
             break
+
+
+def batch_to_table_entry(
+    x: torch.Tensor,
+    y: torch.Tensor,
+    index: int,
+    dataset: AbstractDataset,
+) -> dict:
+    """Convert a batch to a table entry."""
+    entry: dict = {
+        "x": x[index].cpu().numpy().tolist(),
+        "x_decoded": dataset.decode(sequence=x[index]),
+        "y": y[index].cpu().numpy().tolist(),
+    }
+    return entry
 
 
 def do_training_step(
