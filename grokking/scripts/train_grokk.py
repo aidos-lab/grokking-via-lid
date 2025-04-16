@@ -30,6 +30,7 @@ import pathlib
 import pprint
 from copy import deepcopy
 from dataclasses import dataclass
+from io import StringIO
 from itertools import product
 from typing import Self
 
@@ -39,6 +40,9 @@ import numpy as np
 import pandas as pd
 import torch
 from omegaconf import DictConfig, OmegaConf
+from rich.console import Console, ConsoleOptions, RenderResult
+from rich.table import Table
+from rich.text import Text
 from torch.utils.data import DataLoader, IterableDataset
 from tqdm.auto import tqdm
 
@@ -86,6 +90,42 @@ default_logger: logging.Logger = logging.getLogger(
 default_device: torch.device = torch.device(device="cpu")
 
 
+def rich_table_to_string(
+    df: pd.DataFrame,
+    max_rows: int = 10,
+    max_col_width: int = 30,
+) -> str:
+    """Convert a pandas DataFrame into a rich-formatted string table.
+
+    Args:
+        df: The DataFrame to convert.
+        max_rows: Maximum number of rows to show.
+        max_col_width: Maximum character width per column (truncate otherwise).
+
+    Returns:
+        A string containing the rich-formatted table.
+
+    """
+    table = Table(show_header=True, header_style="bold cyan")
+
+    for column in df.columns:
+        table.add_column(str(column), style="magenta", max_width=max_col_width)
+
+    # Optionally truncate the DataFrame to avoid huge logs
+    display_df = df.head(max_rows)
+
+    for _, row in display_df.iterrows():
+        formatted_row = [
+            str(val) if len(str(val)) <= max_col_width else str(val)[: max_col_width - 3] + "..." for val in row
+        ]
+        table.add_row(*formatted_row)
+
+    # Capture the printed output into a string buffer
+    console = Console(file=StringIO(), width=100)
+    console.print(table)
+    return console.file.getvalue()
+
+
 class GroupDataset(IterableDataset):
     """Dataset wrapper for training and validation datasets for a given group with operation."""
 
@@ -127,6 +167,16 @@ class GroupDataset(IterableDataset):
         torch.Tensor,
         torch.Tensor,
     ]:
+        # Example outputs of the fetch function for mod_sum_dataset dataset with p=96:
+        # > ([29, 0, 32, 1], 57, [27, 'o', 30, '=', 57])
+        # > ([27, 0, 37, 1], 60, [25, 'o', 35, '=', 60])
+        # > ([92, 0, 40, 1], 32, [90, 'o', 38, '=', 32])
+        # Note that the input_ids for the operands are in the range [2, p + 1],
+        # since the operator 'o' corresponds to input_id 0 and the equality '=' to input_id 1.
+        # The values of y are in the range [0, p - 1],
+        # since the model output is predicting only in the operand range,
+        # also compare with the 96-dimensional output layer:
+        # > (output): Linear(in_features=128, out_features=96, bias=True)
         (
             x,
             y,
@@ -308,9 +358,10 @@ def train(
             msg=f"Using config:\n{pprint.pformat(config)}",  # noqa: G004 - low overhead
         )
 
-    train_cfg = config["train"]
-    wandb_cfg = config["wandb"]
+    train_cfg: dict = config["train"]
+    logging_cfg: dict = config["logging"]
     topological_analysis_cfg: dict = config["topological_analysis"]
+    wandb_cfg: dict = config["wandb"]
 
     # Use the global seed to initialize the random number generators and torch initialization.
     global_seed = train_cfg["global_seed"]
@@ -425,9 +476,17 @@ def train(
         logger.info(
             msg=f"optimizer:\n{optim}",  # noqa: G004 - low overhead
         )
+        # Note: The lr_schedule does not have a useful string representation,
+        # so we just print the class name.
         logger.info(
-            msg=f"lr_schedule:\n{lr_schedule}",  # noqa: G004 - low overhead
+            msg=f"lr_schedule:\n{lr_schedule.__class__.__name__}",  # noqa: G004 - low overhead
         )
+
+    training_log_example_batch_every = logging_cfg["training"]["log_example_batch_every"]
+    number_of_entries_in_example_batch = logging_cfg["training"]["number_of_entries_in_example_batch"]
+    save_checkpoints_every = train_cfg["save_checkpoints_every"]
+    topological_analysis_compute_estimates_every = topological_analysis_cfg["compute_estimates_every"]
+    topological_analysis_create_projection_plot_every = topological_analysis_cfg["create_projection_plot_every"]
 
     # # # #
     # Training loop
@@ -440,6 +499,38 @@ def train(
             desc="Training loop.",
         ),
     ):
+        if training_log_example_batch_every > 0 and step % training_log_example_batch_every == 0:
+            log_example_batch(
+                x=x,
+                y=y,
+                dataset=dataset,
+                step=step,
+                number_of_entries_in_example_batch=number_of_entries_in_example_batch,
+                verbosity=verbosity,
+                logger=logger,
+            )
+
+        # # # #
+        # Optionally: Save the model, optimizer and dataloader
+
+        if save_checkpoints_every > 0 and step % save_checkpoints_every == 0:
+            # Note: We use `step` instead of `step + 1` here,
+            # because we want to also save the model for step == 0, i.e., at the beginning of training.
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"Saving checkpoint for {step = } ...",  # noqa: G004 - low overhead
+                )
+
+            # TODO: Implement the model saving
+            logger.warning(
+                msg="Saving is not fully implemented yet!",
+            )
+
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"Saving checkpoint for {step = } DONE",  # noqa: G004 - low overhead
+                )
+
         training_logs: dict = do_training_step(
             model=model,
             optim=optim,
@@ -508,8 +599,6 @@ def train(
 
         # # # #
         # Embedding space analysis step
-        topological_analysis_compute_estimates_every = topological_analysis_cfg["compute_estimates_every"]
-        topological_analysis_create_projection_plot_every = topological_analysis_cfg["create_projection_plot_every"]
 
         if (
             topological_analysis_compute_estimates_every > 0
@@ -534,6 +623,72 @@ def train(
         # Break condition
         if train_cfg["max_steps"] is not None and step >= train_cfg["max_steps"]:
             break
+
+
+def log_example_batch(
+    x: torch.Tensor,
+    y: torch.Tensor,
+    dataset: AbstractDataset,
+    step: int,
+    number_of_entries_in_example_batch: int,
+    verbosity: Verbosity = Verbosity.NORMAL,
+    logger: logging.Logger = default_logger,
+) -> None:
+    """Log an example batch of data."""
+    if verbosity >= Verbosity.NORMAL:
+        logger.info(
+            msg=f"Logging example batch for {step = } ...",  # noqa: G004 - low overhead
+        )
+        logger.info(
+            msg=f"{x.shape = }; {y.shape = }",  # noqa: G004 - low overhead
+        )
+
+        # Comment about decoding:
+        # `train_dataloader.dataset` is a GroupDataset, we need to go one level deeper to access the instance
+        # which inherits from AbstractDataset and provides the decode method.
+        # > train_dataloader.dataset.dataset.decode(x[0])
+        # Here we still have access to the original dataset, so we can just use this for decoding.
+
+    number_of_entries_to_log: int = min(
+        number_of_entries_in_example_batch,
+        len(x),
+    )
+    collected_examples_list: list = [
+        batch_to_table_entry(
+            x=x,
+            y=y,
+            index=i,
+            dataset=dataset,
+        )
+        for i in range(number_of_entries_to_log)
+    ]
+    collected_examples_df: pd.DataFrame = pd.DataFrame(
+        data=collected_examples_list,
+    )
+
+    table_str: str = rich_table_to_string(
+        df=collected_examples_df,
+        max_rows=number_of_entries_in_example_batch,
+    )
+    if verbosity >= Verbosity.NORMAL:
+        logger.info(
+            msg=f"Example batch for {step = }:\n{table_str}",  # noqa: G004 - low overhead
+        )
+
+
+def batch_to_table_entry(
+    x: torch.Tensor,
+    y: torch.Tensor,
+    index: int,
+    dataset: AbstractDataset,
+) -> dict:
+    """Convert a batch to a table entry."""
+    entry: dict = {
+        "x": x[index].cpu().numpy().tolist(),
+        "x_decoded": dataset.decode(sequence=x[index]),
+        "y": y[index].cpu().numpy().tolist(),
+    }
+    return entry
 
 
 def do_training_step(

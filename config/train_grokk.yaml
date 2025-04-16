@@ -1,5 +1,6 @@
 defaults:
   - dataset: mod_subtract_dataset
+  - logging: default
   - model: grokk_model
   - _self_
 
@@ -24,6 +25,7 @@ train:
   max_steps: 1e6
   preferred_torch_backend: auto
   global_seed: 1234
+  save_checkpoints_every: 50000
 
 topological_analysis:
   compute_estimates_every: 100

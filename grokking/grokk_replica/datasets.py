@@ -27,9 +27,12 @@
 import abc
 import random
 from itertools import permutations
+from typing import Any
 
 
 class AbstractDataset(abc.ABC):
+    """Abstract class for datasets."""
+
     def __init__(
         self,
         group_elements1: set,
@@ -37,16 +40,16 @@ class AbstractDataset(abc.ABC):
         frac_train: float,
         dataset_seed: int,
     ) -> None:
-        self.frac_train = frac_train
+        self.frac_train: float = frac_train
 
-        self.dataset_seed = dataset_seed
+        self.dataset_seed: int = dataset_seed
         # Create a generator for the random number generator
         self.rng = random.Random(  # noqa: S311 - we will not use this for cryptography
             x=self.dataset_seed,
         )
 
-        self.group_elements1 = group_elements1
-        self.group_elements2 = group_elements2
+        self.group_elements1: set = group_elements1
+        self.group_elements2: set = group_elements2
         self.ordered_group_elements1 = list(self.group_elements1)
         self.ordered_group_elements2 = list(self.group_elements2)
 
@@ -79,16 +82,31 @@ class AbstractDataset(abc.ABC):
         )
 
     @abc.abstractmethod
-    def fetch_output(self, a, b):
+    def fetch_output(
+        self,
+        a,
+        b,
+    ) -> Any:
         pass
 
-    def encode(self, sequence):
+    def encode(
+        self,
+        sequence,
+    ) -> list:
         return [self.vocab2idx[item] for item in sequence]
 
-    def decode(self, sequence):
+    def decode(
+        self,
+        sequence,
+    ) -> list:
         return [self.idx2vocab[item] for item in sequence]
 
-    def form_equation(self, a, b, c):
+    def form_equation(
+        self,
+        a,
+        b,
+        c,
+    ) -> list:
         return [
             a,
             "o",
@@ -97,22 +115,39 @@ class AbstractDataset(abc.ABC):
             c,
         ]
 
-    def fetch_example(self, idx):
+    def fetch_example(
+        self,
+        idx: int,
+    ) -> tuple[list[int], int, list]:
+        """Fetch an example from the dataset."""
         a = self.ordered_group_elements1[idx // len(self.group_elements2)]
         b = self.ordered_group_elements2[idx % len(self.group_elements2)]
-        c = self.fetch_output(a, b)
-        equation = self.form_equation(
+        c = self.fetch_output(
+            a=a,
+            b=b,
+        )
+        equation: list = self.form_equation(
             a=a,
             b=b,
             c=c,
         )
+        # The entries in the returned tuple are:
+        # - The encoded equation without the last token (which is the output) --> x in the training batches
+        # - The value corresponding to the output --> y in the training batches.
+        #   Note:
+        #   The output layer has dimension n_out (which is the size of the group) and the first two tokens are "o" and "=".
+        #   This is why for the entry at index 1 in the returned tuple,
+        #   which corresponds to the y value in the dataset entry, we subtract 2 from the index.
+        # - The equation itself (for debugging purposes) --> not used in the training batches.
         return (
-            self.encode(equation[:-1]),
+            self.encode(sequence=equation[:-1]),
             (self.vocab2idx[c] - 2),
             equation,
         )
 
-    def fetch_train_example(self):
+    def fetch_train_example(
+        self,
+    ) -> tuple[list[int], int, list]:
         idx: int = self.rng.choice(
             seq=self.train_pairs,
         )
@@ -120,7 +155,9 @@ class AbstractDataset(abc.ABC):
             idx=idx,
         )
 
-    def fetch_val_example(self):
+    def fetch_val_example(
+        self,
+    ) -> tuple[list[int], int, list]:
         idx: int = self.rng.choice(
             seq=self.val_pairs,
         )
@@ -144,7 +181,11 @@ class ModSumDataset(AbstractDataset):
         )
         self.p = p
 
-    def fetch_output(self, a, b):
+    def fetch_output(
+        self,
+        a,
+        b,
+    ):
         return (a + b) % self.p
 
 
@@ -163,7 +204,11 @@ class ModSubtractDataset(AbstractDataset):
         )
         self.p = p
 
-    def fetch_output(self, a, b):
+    def fetch_output(
+        self,
+        a,
+        b,
+    ):
         return (a - b) % self.p
 
 
@@ -182,7 +227,11 @@ class ModDivisonDataset(AbstractDataset):
         )
         self.p = p
 
-    def fetch_output(self, a, b):
+    def fetch_output(
+        self,
+        a,
+        b,
+    ):
         return (a * pow(b, self.p - 2, self.p)) % self.p
 
 
@@ -193,7 +242,14 @@ class PermutationGroup(AbstractDataset):
         frac_train: float,
         dataset_seed: int,
     ) -> None:
-        perms = set(map(tuple, permutations(list(range(k)))))
+        perms = set(
+            map(
+                tuple,
+                permutations(
+                    list(range(k)),
+                ),
+            ),
+        )
         super().__init__(
             group_elements1=perms,
             group_elements2=perms,
@@ -202,5 +258,9 @@ class PermutationGroup(AbstractDataset):
         )
         self.k = k
 
-    def fetch_output(self, a, b):  # type: ignore - NOTE: There is a typing problem here, but we need to try out this group before we can debug it.
+    def fetch_output(  # type: ignore - NOTE: There is a typing problem here, but we need to try out this group before we can debug it.
+        self,
+        a,
+        b,
+    ):
         return tuple([a[b[i]] for i in range(len(b))])
