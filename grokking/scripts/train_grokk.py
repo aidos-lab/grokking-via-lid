@@ -500,45 +500,15 @@ def train(
         ),
     ):
         if training_log_example_batch_every > 0 and step % training_log_example_batch_every == 0:
-            if verbosity >= Verbosity.NORMAL:
-                logger.info(
-                    msg=f"Logging example batch for {step = } ...",  # noqa: G004 - low overhead
-                )
-                logger.info(
-                    msg=f"{x.shape = }; {y.shape = }",  # noqa: G004 - low overhead
-                )
-
-            # Comment about decoding:
-            # `train_dataloader.dataset` is a GroupDataset, we need to go one level deeper to access the instance
-            # which inherits from AbstractDataset and provides the decode method.
-            # > train_dataloader.dataset.dataset.decode(x[0])
-            # Here we still have access to the original dataset, so we can just use this for decoding.
-
-            number_of_entries_to_log: int = min(
-                number_of_entries_in_example_batch,
-                len(x),
+            log_example_batch(
+                x=x,
+                y=y,
+                dataset=dataset,
+                step=step,
+                number_of_entries_in_example_batch=number_of_entries_in_example_batch,
+                verbosity=verbosity,
+                logger=logger,
             )
-            collected_examples_list: list = [
-                batch_to_table_entry(
-                    x=x,
-                    y=y,
-                    index=i,
-                    dataset=dataset,
-                )
-                for i in range(number_of_entries_to_log)
-            ]
-            collected_examples_df: pd.DataFrame = pd.DataFrame(
-                data=collected_examples_list,
-            )
-
-            table_str: str = rich_table_to_string(
-                df=collected_examples_df,
-                max_rows=number_of_entries_in_example_batch,
-            )
-            if verbosity >= Verbosity.NORMAL:
-                logger.info(
-                    msg=f"Example batch for {step = }:\n{table_str}",  # noqa: G004 - low overhead
-                )
 
         # # # #
         # Optionally: Save the model, optimizer and dataloader
@@ -653,6 +623,57 @@ def train(
         # Break condition
         if train_cfg["max_steps"] is not None and step >= train_cfg["max_steps"]:
             break
+
+
+def log_example_batch(
+    x: torch.Tensor,
+    y: torch.Tensor,
+    dataset: AbstractDataset,
+    step: int,
+    number_of_entries_in_example_batch: int,
+    verbosity: Verbosity = Verbosity.NORMAL,
+    logger: logging.Logger = default_logger,
+) -> None:
+    """Log an example batch of data."""
+    if verbosity >= Verbosity.NORMAL:
+        logger.info(
+            msg=f"Logging example batch for {step = } ...",  # noqa: G004 - low overhead
+        )
+        logger.info(
+            msg=f"{x.shape = }; {y.shape = }",  # noqa: G004 - low overhead
+        )
+
+        # Comment about decoding:
+        # `train_dataloader.dataset` is a GroupDataset, we need to go one level deeper to access the instance
+        # which inherits from AbstractDataset and provides the decode method.
+        # > train_dataloader.dataset.dataset.decode(x[0])
+        # Here we still have access to the original dataset, so we can just use this for decoding.
+
+    number_of_entries_to_log: int = min(
+        number_of_entries_in_example_batch,
+        len(x),
+    )
+    collected_examples_list: list = [
+        batch_to_table_entry(
+            x=x,
+            y=y,
+            index=i,
+            dataset=dataset,
+        )
+        for i in range(number_of_entries_to_log)
+    ]
+    collected_examples_df: pd.DataFrame = pd.DataFrame(
+        data=collected_examples_list,
+    )
+
+    table_str: str = rich_table_to_string(
+        df=collected_examples_df,
+        max_rows=number_of_entries_in_example_batch,
+    )
+    if verbosity >= Verbosity.NORMAL:
+        logger.info(
+            msg=f"Example batch for {step = }:\n{table_str}",  # noqa: G004 - low overhead
+        )
 
 
 def batch_to_table_entry(
