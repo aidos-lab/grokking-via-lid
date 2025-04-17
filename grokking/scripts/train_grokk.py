@@ -42,6 +42,7 @@ from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
 import wandb
+from grokking.config_classes.constants import GROKKING_REPOSITORY_BASE_PATH
 from grokking.grokk_replica.datasets import AbstractDataset
 from grokking.grokk_replica.grokk_model import GrokkModel
 from grokking.grokk_replica.load_objs import load_item
@@ -525,6 +526,7 @@ def main(
 
     cfg_as_container = OmegaConf.to_container(
         cfg=cfg,
+        resolve=True,
     )
     if not isinstance(
         cfg_as_container,
@@ -554,10 +556,24 @@ def main(
         logger.info(
             msg=f"Initializing wandb with project name: {wandb_cfg['wandb_project']}",  # noqa: G004 - low overhead
         )
+
+        # Save wandb files to a subdirectory with the project name
+        wandb_output_dir = pathlib.Path(
+            GROKKING_REPOSITORY_BASE_PATH,
+            wandb_cfg["wandb_dir"],
+        )
+        if not wandb_output_dir.exists():
+            logger.info(
+                msg=f"Creating wandb output directory: {wandb_output_dir=}",  # noqa: G004 - low overhead
+            )
+            wandb_output_dir.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+
         wandb.init(
             project=wandb_cfg["wandb_project"],
-            # TODO: WARNING Path wandb/${wandb.wandb_project}/wandb/ wasn't writable, using system temp directory.
-            dir=wandb_cfg["wandb_dir"],  # Save wandb files to a subdirectory with the project name
+            dir=wandb_output_dir,
             notes=wandb_cfg["wandb_notes"],
             config=config,
         )
@@ -568,7 +584,7 @@ def main(
         )
 
     train(
-        config=cfg_as_container,
+        config=config,
         output_dir=hydra_output_dir,
         verbosity=verbosity,
         logger=logger,

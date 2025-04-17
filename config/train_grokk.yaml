@@ -41,10 +41,7 @@ topological_analysis:
 wandb:
   use_wandb: true
   wandb_project: grokking_replica
-  # TODO: There is a problem with the omegaConf interpolation here
-  # wandb_dir: wandb/${wandb.wandb_project}/
-  # TODO: Remove this once fixed
-  wandb_dir: wandb/
+  wandb_dir: wandb/${wandb.wandb_project}/
   wandb_notes: "default notes"
 
 hydra:
@@ -54,6 +51,7 @@ hydra:
     dir: outputs/multirun/${hydra.job.name}/${now:%Y-%m-%d}/${now:%H-%M-%S}/
     subdir: ${hydra.job.override_dirname}/
   job:
+    chdir: False
     config:
       override_dirname:
         exclude_keys:
