@@ -41,6 +41,11 @@ topological_analysis:
 wandb:
   use_wandb: true
   wandb_project: grokking_replica
+  # TODO: There is a problem with the omegaConf interpolation here
+  # wandb_dir: wandb/${wandb.wandb_project}/
+  # TODO: Remove this once fixed
+  wandb_dir: wandb/
+  wandb_notes: "default notes"
 
 hydra:
   run:

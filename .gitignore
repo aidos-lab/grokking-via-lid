@@ -1,6 +1,12 @@
+# Notes:
+# - Do not put slashes behind the "backup" entries,
+#   so that we also exclude zipped backup files
+
 # Python environments
 .env
+.env.backup.*
 .venv
+.venv.backup.*
 __pycache__/
 
 # MacOS system files
@@ -8,9 +14,11 @@ __pycache__/
 
 # Logging
 wandb/
+wandb.backup.*
 
 # Output directories
 outputs/
+outputs.backup.*
 
 # Hydra files
 hydra_plugins/
