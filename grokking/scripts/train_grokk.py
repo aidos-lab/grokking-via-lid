@@ -219,20 +219,20 @@ def train(
             logger=logger,
         )
 
-    optim = torch.optim.AdamW(
+    optimizer = torch.optim.AdamW(
         params=model.parameters(),
         lr=train_cfg["lr"],
         weight_decay=train_cfg["weight_decay"],
         betas=train_cfg["betas"],
     )
     lr_schedule = torch.optim.lr_scheduler.LambdaLR(
-        optimizer=optim,
+        optimizer=optimizer,
         lr_lambda=lambda s: min(s / train_cfg["warmup_steps"], 1),
     )
 
     if verbosity >= Verbosity.NORMAL:
         logger.info(
-            msg=f"optimizer:\n{optim}",  # noqa: G004 - low overhead
+            msg=f"optimizer:\n{optimizer}",  # noqa: G004 - low overhead
         )
         # Note: The lr_schedule does not have a useful string representation,
         # so we just print the class name.
@@ -248,14 +248,14 @@ def train(
 
     # # # #
     # Training loop
-    for step, (
+    step = 0  # TODO: Make this configurable through loading
+
+    for (
         x,
         y,
-    ) in enumerate(
-        iterable=tqdm(
-            train_dataloader,
-            desc="Training loop.",
-        ),
+    ) in tqdm(
+        train_dataloader,
+        desc="Training loop.",
     ):
         if training_log_example_batch_every > 0 and step % training_log_example_batch_every == 0:
             log_example_batch(
@@ -268,30 +268,9 @@ def train(
                 logger=logger,
             )
 
-        # # # #
-        # Optionally: Save the model, optimizer and dataloader
-
-        if save_checkpoints_every > 0 and step % save_checkpoints_every == 0:
-            # Note: We use `step` instead of `step + 1` here,
-            # because we want to also save the model for step == 0, i.e., at the beginning of training.
-            if verbosity >= Verbosity.NORMAL:
-                logger.info(
-                    msg=f"Saving checkpoint for {step = } ...",  # noqa: G004 - low overhead
-                )
-
-            # TODO: Implement the model saving
-            logger.warning(
-                msg="Saving is not fully implemented yet!",
-            )
-
-            if verbosity >= Verbosity.NORMAL:
-                logger.info(
-                    msg=f"Saving checkpoint for {step = } DONE",  # noqa: G004 - low overhead
-                )
-
         training_logs: dict = do_training_step(
             model=model,
-            optim=optim,
+            optimizer=optimizer,
             lr_schedule=lr_schedule,
             x=x,
             y=y,
@@ -376,7 +355,77 @@ def train(
             )
 
         # # # #
+        # Optionally: Save the model, optimizer and dataloader
+        #
+        # Notes:
+        # - We use `step` instead of `step + 1` here,
+        #   because we want to also save the model for step == 0,
+        #   i.e., at the beginning of training.
+        # - We save the dataloaders at the end of the training loop step,
+        #   so that we can resume training from the last checkpoint,
+        #   and the iterable loaders are at the correct position for the next step.
+        if save_checkpoints_every > 0 and step % save_checkpoints_every == 0:
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"Saving checkpoint for {step = } ...",  # noqa: G004 - low overhead
+                )
+
+            checkpoints_root_dir: pathlib.Path = pathlib.Path(
+                output_dir,
+                "checkpoints",
+                f"{step=}",
+            )
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"{checkpoints_root_dir = }",  # noqa: G004 - low overhead
+                )
+
+            # We will follow the following guide in the torch documentation for saving the model and optimizer state:
+            # https://pytorch.org/tutorials/beginner/saving_loading_models.html#saving-loading-a-general-checkpoint-for-inference-and-or-resuming-training
+            checkpoint_data_dict: dict = {
+                "step": step,
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "lr_schedule": lr_schedule,
+                "training_logs": training_logs,
+            }
+
+            checkpoint_data_dict_save_path: pathlib.Path = pathlib.Path(
+                checkpoints_root_dir,
+                "checkpoint_data_dict.tar",
+            )
+            if not checkpoint_data_dict_save_path.exists():
+                checkpoint_data_dict_save_path.parent.mkdir(
+                    parents=True,
+                    exist_ok=True,
+                )
+
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"Saving checkpoint data dict to {checkpoint_data_dict_save_path = } ...",  # noqa: G004 - low overhead
+                )
+            torch.save(
+                obj=checkpoint_data_dict,
+                f=checkpoint_data_dict_save_path,
+            )
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"Saving checkpoint data dict to {checkpoint_data_dict_save_path = } DONE",  # noqa: G004 - low overhead
+                )
+
+            # TODO: Implement the data loader saving
+            logger.warning(
+                msg="Saving is not fully implemented yet!",
+            )
+
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"Saving checkpoint for {step = } DONE",  # noqa: G004 - low overhead
+                )
+
+        # # # #
         # Finalize training loop step
+        step += 1  # noqa: SIM113 - we want to have manual control over the step variable
 
         # Break condition
         if train_cfg["max_steps"] is not None and step >= train_cfg["max_steps"]:
@@ -454,7 +503,7 @@ def batch_to_table_entry(
 
 def do_training_step(
     model: GrokkModel,
-    optim: torch.optim.Optimizer,
+    optimizer: torch.optim.Optimizer,
     lr_schedule: torch.optim.lr_scheduler.LambdaLR,
     x: torch.Tensor,
     y: torch.Tensor,
@@ -467,9 +516,9 @@ def do_training_step(
         x=x.to(device),
         y=y.to(device),
     )
-    optim.zero_grad()
+    optimizer.zero_grad()
     loss.backward()
-    optim.step()
+    optimizer.step()
     lr_schedule.step()
 
     return logs
@@ -487,7 +536,13 @@ def do_eval_step(
 
     with torch.no_grad():
         all_val_logs = []
-        for i, (val_x, val_y) in tqdm(
+        for (
+            i,
+            (
+                val_x,
+                val_y,
+            ),
+        ) in tqdm(
             enumerate(iterable=val_dataloader),
             desc="Evaluating validation data.",
         ):

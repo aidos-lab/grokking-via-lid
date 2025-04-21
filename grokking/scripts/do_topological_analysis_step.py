@@ -50,6 +50,10 @@ def do_topological_analysis_step(
             msg=f"Running topological analysis for {step + 1 = } ...",  # noqa: G004 - low overhead
         )
 
+    if verbosity >= Verbosity.DEBUG:
+        logger.debug(
+            msg="Setting model to eval mode.",
+        )
     model.eval()
 
     with torch.no_grad():
@@ -222,6 +226,10 @@ def do_topological_analysis_step(
                 msg=f"Running topological analysis for {dataset_for_topological_analysis.split = } ...",  # noqa: G004 - low overhead
             )
 
+    if verbosity >= Verbosity.DEBUG:
+        logger.debug(
+            msg="Setting model to train mode.",
+        )
     model.train()
 
     if verbosity >= Verbosity.NORMAL:
