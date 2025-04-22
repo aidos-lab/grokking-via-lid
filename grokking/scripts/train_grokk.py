@@ -28,16 +28,12 @@ import logging
 import os
 import pathlib
 import pprint
-from io import StringIO
-from typing import Self
 
 import hydra
 import hydra.core
 import pandas as pd
 import torch
 from omegaconf import DictConfig, OmegaConf
-from rich.console import Console
-from rich.table import Table
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
@@ -48,6 +44,7 @@ from grokking.grokk_replica.grokk_model import GrokkModel
 from grokking.grokk_replica.load_objs import load_item
 from grokking.grokk_replica.utils import combine_logs
 from grokking.logging.create_and_configure_global_logger import create_and_configure_global_logger
+from grokking.logging.log_dataframe_info import rich_table_to_string
 from grokking.logging.log_model_info import log_model_info
 from grokking.model_handling.count_trainable_parameters import count_trainable_parameters
 from grokking.model_handling.get_torch_device import get_torch_device
@@ -76,42 +73,6 @@ default_logger: logging.Logger = logging.getLogger(
 default_device: torch.device = torch.device(
     device="cpu",
 )
-
-
-def rich_table_to_string(
-    df: pd.DataFrame,
-    max_rows: int = 10,
-    max_col_width: int = 30,
-) -> str:
-    """Convert a pandas DataFrame into a rich-formatted string table.
-
-    Args:
-        df: The DataFrame to convert.
-        max_rows: Maximum number of rows to show.
-        max_col_width: Maximum character width per column (truncate otherwise).
-
-    Returns:
-        A string containing the rich-formatted table.
-
-    """
-    table = Table(show_header=True, header_style="bold cyan")
-
-    for column in df.columns:
-        table.add_column(str(column), style="magenta", max_width=max_col_width)
-
-    # Optionally truncate the DataFrame to avoid huge logs
-    display_df = df.head(max_rows)
-
-    for _, row in display_df.iterrows():
-        formatted_row = [
-            str(val) if len(str(val)) <= max_col_width else str(val)[: max_col_width - 3] + "..." for val in row
-        ]
-        table.add_row(*formatted_row)
-
-    # Capture the printed output into a string buffer
-    console = Console(file=StringIO(), width=100)
-    console.print(table)
-    return console.file.getvalue()  # type: ignore - typing problem with IO
 
 
 def train(
@@ -380,16 +341,20 @@ def train(
                     msg=f"{checkpoints_root_dir = }",  # noqa: G004 - low overhead
                 )
 
+            # # # #
+            # Save step 1: Save the model and optimizer state.
+            #
             # We will follow the following guide in the torch documentation for saving the model and optimizer state:
             # https://pytorch.org/tutorials/beginner/saving_loading_models.html#saving-loading-a-general-checkpoint-for-inference-and-or-resuming-training
             checkpoint_data_dict: dict = {
                 "step": step,
                 "model_state_dict": model.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
-                "lr_schedule": lr_schedule,
+                "lr_schedule": lr_schedule.state_dict(),
                 "training_logs": training_logs,
             }
 
+            # Using common torch convention to save checkpoints using the .tar file extension
             checkpoint_data_dict_save_path: pathlib.Path = pathlib.Path(
                 checkpoints_root_dir,
                 "checkpoint_data_dict.tar",
@@ -413,10 +378,36 @@ def train(
                     msg=f"Saving checkpoint data dict to {checkpoint_data_dict_save_path = } DONE",  # noqa: G004 - low overhead
                 )
 
-            # TODO: Implement the data loader saving
-            logger.warning(
-                msg="Saving is not fully implemented yet!",
+            # # # #
+            # Save step 2: Save the dataloaders.
+            dataloaders_dict: dict = {
+                "train_dataloader": train_dataloader,
+                "val_dataloader": val_dataloader,
+            }
+
+            # Using common torch convention to save checkpoints using the .tar file extension
+            dataloaders_dict_save_path: pathlib.Path = pathlib.Path(
+                checkpoints_root_dir,
+                "dataloaders_dict.tar",
             )
+            if not dataloaders_dict_save_path.exists():
+                dataloaders_dict_save_path.parent.mkdir(
+                    parents=True,
+                    exist_ok=True,
+                )
+
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"Saving dataloaders dict to {dataloaders_dict_save_path = } ...",  # noqa: G004 - low overhead
+                )
+            torch.save(
+                obj=dataloaders_dict,
+                f=dataloaders_dict_save_path,
+            )
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg=f"Saving dataloaders dict to {dataloaders_dict_save_path = } DONE",  # noqa: G004 - low overhead
+                )
 
             if verbosity >= Verbosity.NORMAL:
                 logger.info(
