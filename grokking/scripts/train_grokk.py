@@ -28,6 +28,7 @@ import logging
 import os
 import pathlib
 import pprint
+from dataclasses import dataclass
 
 import hydra
 import hydra.core
@@ -73,6 +74,165 @@ default_logger: logging.Logger = logging.getLogger(
 default_device: torch.device = torch.device(
     device="cpu",
 )
+
+
+@dataclass
+class TrainingLoopState:
+    """Class to hold the state of the training loop."""
+
+    model: GrokkModel
+    optimizer: torch.optim.Optimizer
+    lr_schedule: torch.optim.lr_scheduler.LambdaLR
+    training_logs: dict
+
+    dataset: AbstractDataset
+    train_dataloader: DataLoader
+    val_dataloader: DataLoader
+    datasets_for_topological_analysis_list: list[DatasetForTopologicalAnalysis]
+
+    output_dir: os.PathLike
+
+    device: torch.device = default_device
+    step: int = 0
+
+    def log_info(
+        self,
+        logger: logging.Logger = default_logger,
+    ) -> None:
+        logger.info(
+            msg=f"model:\n{self.model}",  # noqa: G004 - low overhead
+        )
+        logger.info(
+            msg=f"Number of trainable parameters: {count_trainable_parameters(model=self.model) = }",  # noqa: G004 - low overhead
+        )
+        log_model_info(
+            model=self.model,
+            model_name="model",
+            logger=logger,
+        )
+        logger.info(
+            msg=f"optimizer:\n{self.optimizer}",  # noqa: G004 - low overhead
+        )
+        # Note: The lr_schedule does not have a useful string representation,
+        # so we just print the class name.
+        logger.info(
+            msg=f"lr_schedule:\n{self.lr_schedule.__class__.__name__}",  # noqa: G004 - low overhead
+        )
+        logger.info(
+            msg=f"{self.step = }",  # noqa: G004 - low overhead
+        )
+
+    @property
+    def checkpoints_root_dir(
+        self,
+    ) -> pathlib.Path:
+        """Get the checkpoints root directory."""
+        path = pathlib.Path(
+            self.output_dir,
+            "checkpoints",
+            f"step={self.step}",
+        )
+        return path
+
+    @property
+    def checkpoint_data_dict_save_path(
+        self,
+    ) -> pathlib.Path:
+        """Get the checkpoint data dict save path."""
+        # Using common torch convention to save checkpoints using the .tar file extension
+        path = pathlib.Path(
+            self.checkpoints_root_dir,
+            "checkpoint_data_dict.tar",
+        )
+        return path
+
+    @property
+    def dataloaders_dict_save_path(
+        self,
+    ) -> pathlib.Path:
+        """Get the dataloaders dict save path."""
+        # Using common torch convention to save checkpoints using the .tar file extension
+        path = pathlib.Path(
+            self.checkpoints_root_dir,
+            "dataloaders_dict.tar",
+        )
+        return path
+
+    def save_to_folder(
+        self,
+        verbosity: Verbosity = Verbosity.NORMAL,
+        logger: logging.Logger = default_logger,
+    ) -> None:
+        """Save the state to a folder."""
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg=f"Saving checkpoint for {self.step = } ...",  # noqa: G004 - low overhead
+            )
+
+        # # # #
+        # Save step 1: Save the model and optimizer state.
+        #
+        # We will follow the following guide in the torch documentation for saving the model and optimizer state:
+        # https://pytorch.org/tutorials/beginner/saving_loading_models.html#saving-loading-a-general-checkpoint-for-inference-and-or-resuming-training
+        checkpoint_data_dict: dict = {
+            "step": self.step,
+            "model_state_dict": self.model.state_dict(),
+            "optimizer_state_dict": self.optimizer.state_dict(),
+            "lr_schedule": self.lr_schedule.state_dict(),
+            "training_logs": self.training_logs,
+        }
+
+        if not self.checkpoint_data_dict_save_path.exists():
+            self.checkpoint_data_dict_save_path.parent.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg=f"Saving checkpoint data dict to {self.checkpoint_data_dict_save_path = } ...",  # noqa: G004 - low overhead
+            )
+        torch.save(
+            obj=checkpoint_data_dict,
+            f=self.checkpoint_data_dict_save_path,
+        )
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg=f"Saving checkpoint data dict to {self.checkpoint_data_dict_save_path = } DONE",  # noqa: G004 - low overhead
+            )
+
+        # # # #
+        # Save step 2: Save the dataloaders.
+        dataloaders_dict: dict = {
+            "dataset": self.dataset,
+            "train_dataloader": self.train_dataloader,
+            "val_dataloader": self.val_dataloader,
+            "datasets_for_topological_analysis_list": self.datasets_for_topological_analysis_list,
+        }
+
+        if not self.dataloaders_dict_save_path.exists():
+            self.dataloaders_dict_save_path.parent.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg=f"Saving dataloaders dict to {self.dataloaders_dict_save_path = } ...",  # noqa: G004 - low overhead
+            )
+        torch.save(
+            obj=dataloaders_dict,
+            f=self.dataloaders_dict_save_path,
+        )
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg=f"Saving dataloaders dict to {self.dataloaders_dict_save_path = } DONE",  # noqa: G004 - low overhead
+            )
+
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg=f"Saving checkpoint for {self.step = } DONE",  # noqa: G004 - low overhead
+            )
 
 
 def train(
@@ -128,6 +288,8 @@ def train(
             logger.info(
                 msg=f"Loading from directory: {load_checkpoint_from_dir = } DONE",  # noqa: G004 - low overhead
             )
+
+        # TODO: Make sure that we increase the step by 1 after loading the checkpoint, because this is necessary to be consistent for the next training step iteration.
     else:
         if verbosity >= Verbosity.NORMAL:
             logger.info(
@@ -208,33 +370,28 @@ def train(
         # Set step to 0 when starting training from scratch.
         step = 0
 
+        training_loop_state: TrainingLoopState = TrainingLoopState(
+            model=model,
+            optimizer=optimizer,
+            lr_schedule=lr_schedule,
+            training_logs={},
+            dataset=dataset,
+            train_dataloader=train_dataloader,
+            val_dataloader=val_dataloader,
+            datasets_for_topological_analysis_list=datasets_for_topological_analysis_list,
+            output_dir=output_dir,
+            device=device,
+            step=step,
+        )
+
         if verbosity >= Verbosity.NORMAL:
             logger.info(
                 msg="Preparing to train from scratch DONE",
             )
 
     if verbosity >= Verbosity.NORMAL:
-        logger.info(
-            msg=f"model:\n{model}",  # noqa: G004 - low overhead
-        )
-        logger.info(
-            msg=f"Number of trainable parameters: {count_trainable_parameters(model) = }",  # noqa: G004 - low overhead
-        )
-        log_model_info(
-            model=model,
-            model_name="model",
+        training_loop_state.log_info(
             logger=logger,
-        )
-        logger.info(
-            msg=f"optimizer:\n{optimizer}",  # noqa: G004 - low overhead
-        )
-        # Note: The lr_schedule does not have a useful string representation,
-        # so we just print the class name.
-        logger.info(
-            msg=f"lr_schedule:\n{lr_schedule.__class__.__name__}",  # noqa: G004 - low overhead
-        )
-        logger.info(
-            msg=f"{step = }",  # noqa: G004 - low overhead
         )
 
     training_log_example_batch_every = logging_cfg["training"]["log_example_batch_every"]
@@ -245,48 +402,48 @@ def train(
 
     # # # #
     # Training loop
-    model.train()
+    training_loop_state.model.train()
 
     for (
         x,
         y,
     ) in tqdm(
-        train_dataloader,
+        training_loop_state.train_dataloader,
         desc="Training loop.",
     ):
-        if training_log_example_batch_every > 0 and step % training_log_example_batch_every == 0:
+        if training_log_example_batch_every > 0 and training_loop_state.step % training_log_example_batch_every == 0:
             log_example_batch(
                 x=x,
                 y=y,
-                dataset=dataset,
-                step=step,
+                dataset=training_loop_state.dataset,
+                step=training_loop_state.step,
                 number_of_entries_in_example_batch=number_of_entries_in_example_batch,
                 verbosity=verbosity,
                 logger=logger,
             )
 
         training_logs: dict = do_training_step(
-            model=model,
-            optimizer=optimizer,
-            lr_schedule=lr_schedule,
+            model=training_loop_state.model,
+            optimizer=training_loop_state.optimizer,
+            lr_schedule=training_loop_state.lr_schedule,
             x=x,
             y=y,
-            device=device,
+            device=training_loop_state.device,
         )
 
         # # # #
         # Evaluation step
-        if (step + 1) % train_cfg["eval_every"] == 0:
+        if (training_loop_state.step + 1) % train_cfg["eval_every"] == 0:
             if verbosity >= Verbosity.NORMAL:
                 logger.info(
-                    msg=f"Running evaluation for {step + 1 = } ...",  # noqa: G004 - low overhead
+                    msg=f"Running evaluation for {training_loop_state.step + 1 = } ...",  # noqa: G004 - low overhead
                 )
 
             all_val_logs: list[dict] = do_eval_step(
-                model=model,
-                val_dataloader=val_dataloader,
+                model=training_loop_state.model,
+                val_dataloader=training_loop_state.val_dataloader,
                 train_cfg=train_cfg,
-                device=device,
+                device=training_loop_state.device,
                 verbosity=verbosity,
                 logger=logger,
             )
@@ -294,17 +451,18 @@ def train(
             out_log: dict = {
                 "val": combine_logs(logs=all_val_logs),
                 "train": combine_logs(logs=[training_logs]),
-                "step": (step + 1),
-                "lr": float(lr_schedule.get_last_lr()[0]),
+                "step": (training_loop_state.step + 1),
+                "lr": float(training_loop_state.lr_schedule.get_last_lr()[0]),
             }
+            training_loop_state.training_logs = out_log
 
             if verbosity >= Verbosity.NORMAL:
                 logger.info(
-                    msg=f"{out_log}",  # noqa: G004 - low overhead
+                    msg=f"{training_loop_state.training_logs}",  # noqa: G004 - low overhead
                 )
 
             if use_wandb:
-                # Example of the `out_log` dict:
+                # Example of the `training_loop_state.training_logs` dict:
                 #
                 # > {
                 # >     "val": {
@@ -323,12 +481,12 @@ def train(
                 # >     "lr": 0.001,
                 # > }
                 wandb.log(
-                    data=out_log,
+                    data=training_loop_state.training_logs,
                 )
 
             if verbosity >= Verbosity.NORMAL:
                 logger.info(
-                    msg=f"Running evaluation for {step + 1 = } DONE",  # noqa: G004 - low overhead
+                    msg=f"Running evaluation for {training_loop_state.step + 1 = } DONE",  # noqa: G004 - low overhead
                 )
 
         # # # #
@@ -336,17 +494,17 @@ def train(
 
         if (
             topological_analysis_compute_estimates_every > 0
-            and (step + 1) % topological_analysis_compute_estimates_every == 0
+            and (training_loop_state.step + 1) % topological_analysis_compute_estimates_every == 0
         ):
             do_topological_analysis_step(
-                datasets_for_topological_analysis_list=datasets_for_topological_analysis_list,
-                model=model,
-                output_dir=output_dir,
+                datasets_for_topological_analysis_list=training_loop_state.datasets_for_topological_analysis_list,
+                model=training_loop_state.model,
+                output_dir=training_loop_state.output_dir,
                 topological_analysis_cfg=topological_analysis_cfg,
-                step=step,
+                step=training_loop_state.step,
                 topological_analysis_create_projection_plot_every=topological_analysis_create_projection_plot_every,
                 use_wandb=use_wandb,
-                device=device,
+                device=training_loop_state.device,
                 verbosity=verbosity,
                 logger=logger,
             )
@@ -361,104 +519,20 @@ def train(
         # - We save the dataloaders at the end of the training loop step,
         #   so that we can resume training from the last checkpoint,
         #   and the iterable loaders are at the correct position for the next step.
-        if save_checkpoints_every > 0 and step % save_checkpoints_every == 0:
-            if verbosity >= Verbosity.NORMAL:
-                logger.info(
-                    msg=f"Saving checkpoint for {step = } ...",  # noqa: G004 - low overhead
-                )
-
-            checkpoints_root_dir: pathlib.Path = pathlib.Path(
-                output_dir,
-                "checkpoints",
-                f"{step=}",
+        if save_checkpoints_every > 0 and training_loop_state.step % save_checkpoints_every == 0:
+            training_loop_state.save_to_folder(
+                verbosity=verbosity,
+                logger=logger,
             )
-            if verbosity >= Verbosity.NORMAL:
-                logger.info(
-                    msg=f"{checkpoints_root_dir = }",  # noqa: G004 - low overhead
-                )
-
-            # # # #
-            # Save step 1: Save the model and optimizer state.
-            #
-            # We will follow the following guide in the torch documentation for saving the model and optimizer state:
-            # https://pytorch.org/tutorials/beginner/saving_loading_models.html#saving-loading-a-general-checkpoint-for-inference-and-or-resuming-training
-            checkpoint_data_dict: dict = {
-                "step": step,
-                "model_state_dict": model.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-                "lr_schedule": lr_schedule.state_dict(),
-                "training_logs": training_logs,
-            }
-
-            # Using common torch convention to save checkpoints using the .tar file extension
-            checkpoint_data_dict_save_path: pathlib.Path = pathlib.Path(
-                checkpoints_root_dir,
-                "checkpoint_data_dict.tar",
-            )
-            if not checkpoint_data_dict_save_path.exists():
-                checkpoint_data_dict_save_path.parent.mkdir(
-                    parents=True,
-                    exist_ok=True,
-                )
-
-            if verbosity >= Verbosity.NORMAL:
-                logger.info(
-                    msg=f"Saving checkpoint data dict to {checkpoint_data_dict_save_path = } ...",  # noqa: G004 - low overhead
-                )
-            torch.save(
-                obj=checkpoint_data_dict,
-                f=checkpoint_data_dict_save_path,
-            )
-            if verbosity >= Verbosity.NORMAL:
-                logger.info(
-                    msg=f"Saving checkpoint data dict to {checkpoint_data_dict_save_path = } DONE",  # noqa: G004 - low overhead
-                )
-
-            # # # #
-            # Save step 2: Save the dataloaders.
-            dataloaders_dict: dict = {
-                "train_dataloader": train_dataloader,
-                "val_dataloader": val_dataloader,
-                "datasets_for_topological_analysis_list": datasets_for_topological_analysis_list,
-            }
-
-            # Using common torch convention to save checkpoints using the .tar file extension
-            dataloaders_dict_save_path: pathlib.Path = pathlib.Path(
-                checkpoints_root_dir,
-                "dataloaders_dict.tar",
-            )
-            if not dataloaders_dict_save_path.exists():
-                dataloaders_dict_save_path.parent.mkdir(
-                    parents=True,
-                    exist_ok=True,
-                )
-
-            if verbosity >= Verbosity.NORMAL:
-                logger.info(
-                    msg=f"Saving dataloaders dict to {dataloaders_dict_save_path = } ...",  # noqa: G004 - low overhead
-                )
-            torch.save(
-                obj=dataloaders_dict,
-                f=dataloaders_dict_save_path,
-            )
-            if verbosity >= Verbosity.NORMAL:
-                logger.info(
-                    msg=f"Saving dataloaders dict to {dataloaders_dict_save_path = } DONE",  # noqa: G004 - low overhead
-                )
-
-            if verbosity >= Verbosity.NORMAL:
-                logger.info(
-                    msg=f"Saving checkpoint for {step = } DONE",  # noqa: G004 - low overhead
-                )
 
         # # # #
         # Finalize training loop step
-        step += 1  # noqa: SIM113 - we want to have manual control over the step variable
+        training_loop_state.step += 1  # noqa: SIM113 - we want to have manual control over the step variable
 
         # Break condition
-        if train_cfg["max_steps"] is not None and step >= train_cfg["max_steps"]:
+        if train_cfg["max_steps"] is not None and training_loop_state.step >= train_cfg["max_steps"]:
             logger.info(
-                msg=f"Training loop finished after {step + 1} steps by reaching max steps.",  # noqa: G004 - low overhead
+                msg=f"Training loop finished after {training_loop_state.step + 1} steps by reaching max steps.",  # noqa: G004 - low overhead
             )
             break
 
