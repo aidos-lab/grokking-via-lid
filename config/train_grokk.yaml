@@ -26,6 +26,8 @@ train:
   preferred_torch_backend: auto
   global_seed: 1234
   save_checkpoints_every: 50000
+  # Note: Use null to represent None in hydra config (https://stackoverflow.com/questions/76567692/hydra-how-to-express-none-in-config-files)
+  load_checkpoint_from_dir: null
 
 topological_analysis:
   compute_estimates_every: 100

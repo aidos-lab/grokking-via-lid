@@ -92,6 +92,7 @@ def train(
     topological_analysis_cfg: dict = config["topological_analysis"]
     wandb_cfg: dict = config["wandb"]
     use_wandb: bool = wandb_cfg["use_wandb"]
+    load_checkpoint_from_dir: None | str = train_cfg["load_checkpoint_from_dir"]
 
     # Use the global seed to initialize the random number generators and torch initialization.
     global_seed: int = train_cfg["global_seed"]
@@ -106,66 +107,111 @@ def train(
         logger=logger,
     )
 
-    # # # # # # # #
-    # Datasets and Dataloaders
+    if load_checkpoint_from_dir is not None:
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg=f"Loading from directory: {load_checkpoint_from_dir = } ...",  # noqa: G004 - low overhead
+            )
 
-    dataset: AbstractDataset = load_item(
-        config["dataset"],
-    )
-    train_data = GroupDataset(
-        dataset=dataset,
-        split="train",
-    )
-    val_data = GroupDataset(
-        dataset=dataset,
-        split="val",
-    )
+        # Load the checkpoint and dataloaders from the specified directory.
 
-    # Notes:
-    # - We create new instances of the datasets for the topological analysis,
-    #   so that we can consume new batches of data for each analysis step.
-    #   This is important because the datasets are iterable, so we need to
-    #   create new instances to get new batches.
-    datasets_for_topological_analysis_list: list[DatasetForTopologicalAnalysis] = [
-        DatasetForTopologicalAnalysis(
-            group_dataset=GroupDataset(
-                dataset=dataset,
-                split=split,
-            ),
-            split=split,
-            train_cfg=train_cfg,
+        # TODO: Implement this
+        logger.warning(
+            msg="Loading from checkpoint dir is not fully implemented yet.",
         )
-        for split in [
-            "train",
-            "val",
+        msg = "Loading from checkpoint dir is not fully implemented yet."
+        raise NotImplementedError(
+            msg,
+        )
+
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg=f"Loading from directory: {load_checkpoint_from_dir = } DONE",  # noqa: G004 - low overhead
+            )
+    else:
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg="Preparing to train from scratch ...",
+            )
+
+        # # # # # # # #
+        # Datasets
+        dataset: AbstractDataset = load_item(
+            config["dataset"],
+        )
+        train_data = GroupDataset(
+            dataset=dataset,
+            split="train",
+        )
+        val_data = GroupDataset(
+            dataset=dataset,
+            split="val",
+        )
+
+        # Notes:
+        # - We create new instances of the datasets for the topological analysis,
+        #   so that we can consume new batches of data for each analysis step.
+        #   This is important because the datasets are iterable, so we need to
+        #   create new instances to get new batches.
+        datasets_for_topological_analysis_list: list[DatasetForTopologicalAnalysis] = [
+            DatasetForTopologicalAnalysis(
+                group_dataset=GroupDataset(
+                    dataset=dataset,
+                    split=split,
+                ),
+                split=split,
+                train_cfg=train_cfg,
+            )
+            for split in [
+                "train",
+                "val",
+            ]
         ]
-    ]
 
-    # Notes:
-    # - In the current setup without shuffling, the dataloaders will not introduce any non-determinism.
-    train_dataloader = DataLoader(
-        dataset=train_data,
-        batch_size=train_cfg["bsize"],
-        shuffle=False,
-        num_workers=train_cfg["num_workers"],
-    )
-    val_dataloader = DataLoader(
-        dataset=val_data,
-        batch_size=train_cfg["bsize"],
-        shuffle=False,
-        num_workers=train_cfg["num_workers"],
-    )
+        # Notes:
+        # - In the current setup without shuffling, the dataloaders will not introduce any non-determinism.
+        train_dataloader = DataLoader(
+            dataset=train_data,
+            batch_size=train_cfg["bsize"],
+            shuffle=False,
+            num_workers=train_cfg["num_workers"],
+        )
+        val_dataloader = DataLoader(
+            dataset=val_data,
+            batch_size=train_cfg["bsize"],
+            shuffle=False,
+            num_workers=train_cfg["num_workers"],
+        )
 
-    # # # #
-    # Model
+        # # # #
+        # Model
 
-    model: GrokkModel = load_item(
-        config["model"],
-        dataset.n_vocab,
-        dataset.n_out,
-        device,
-    )
-    model.train()
+        model: GrokkModel = load_item(
+            config["model"],
+            dataset.n_vocab,
+            dataset.n_out,
+            device,
+        )
+        model.train()
+
+        optimizer = torch.optim.AdamW(
+            params=model.parameters(),
+            lr=train_cfg["lr"],
+            weight_decay=train_cfg["weight_decay"],
+            betas=train_cfg["betas"],
+        )
+        lr_schedule = torch.optim.lr_scheduler.LambdaLR(
+            optimizer=optimizer,
+            lr_lambda=lambda s: min(s / train_cfg["warmup_steps"], 1),
+        )
+
+        # Set step to 0 when starting training from scratch.
+        step = 0
+
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg="Preparing to train from scratch DONE",
+            )
 
     if verbosity >= Verbosity.NORMAL:
         logger.info(
@@ -179,19 +225,6 @@ def train(
             model_name="model",
             logger=logger,
         )
-
-    optimizer = torch.optim.AdamW(
-        params=model.parameters(),
-        lr=train_cfg["lr"],
-        weight_decay=train_cfg["weight_decay"],
-        betas=train_cfg["betas"],
-    )
-    lr_schedule = torch.optim.lr_scheduler.LambdaLR(
-        optimizer=optimizer,
-        lr_lambda=lambda s: min(s / train_cfg["warmup_steps"], 1),
-    )
-
-    if verbosity >= Verbosity.NORMAL:
         logger.info(
             msg=f"optimizer:\n{optimizer}",  # noqa: G004 - low overhead
         )
@@ -199,6 +232,9 @@ def train(
         # so we just print the class name.
         logger.info(
             msg=f"lr_schedule:\n{lr_schedule.__class__.__name__}",  # noqa: G004 - low overhead
+        )
+        logger.info(
+            msg=f"{step = }",  # noqa: G004 - low overhead
         )
 
     training_log_example_batch_every = logging_cfg["training"]["log_example_batch_every"]
@@ -209,7 +245,7 @@ def train(
 
     # # # #
     # Training loop
-    step = 0  # TODO: Make this configurable through loading
+    model.train()
 
     for (
         x,
@@ -383,6 +419,7 @@ def train(
             dataloaders_dict: dict = {
                 "train_dataloader": train_dataloader,
                 "val_dataloader": val_dataloader,
+                "datasets_for_topological_analysis_list": datasets_for_topological_analysis_list,
             }
 
             # Using common torch convention to save checkpoints using the .tar file extension
