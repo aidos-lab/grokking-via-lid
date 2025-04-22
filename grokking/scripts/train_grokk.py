@@ -29,6 +29,7 @@ import os
 import pathlib
 import pprint
 from dataclasses import dataclass
+from typing import Self
 
 import hydra
 import hydra.core
@@ -95,6 +96,10 @@ class TrainingLoopState:
     device: torch.device = default_device
     step: int = 0
 
+    # Using common torch convention to save checkpoints using the .tar file extension
+    _CHECKPOINT_DATA_DICT_FILE_NAME: str = "checkpoint_data_dict.tar"
+    _DATALOADERS_DICT_FILE_NAME: str = "dataloaders_dict.tar"
+
     def log_info(
         self,
         logger: logging.Logger = default_logger,
@@ -134,27 +139,27 @@ class TrainingLoopState:
         )
         return path
 
-    @property
-    def checkpoint_data_dict_save_path(
-        self,
+    @classmethod
+    def get_checkpoint_data_dict_save_path(
+        cls,
+        checkpoints_root_dir: os.PathLike,
     ) -> pathlib.Path:
         """Get the checkpoint data dict save path."""
-        # Using common torch convention to save checkpoints using the .tar file extension
         path = pathlib.Path(
-            self.checkpoints_root_dir,
-            "checkpoint_data_dict.tar",
+            checkpoints_root_dir,
+            cls._CHECKPOINT_DATA_DICT_FILE_NAME,
         )
         return path
 
-    @property
-    def dataloaders_dict_save_path(
-        self,
+    @classmethod
+    def get_dataloaders_dict_save_path(
+        cls,
+        checkpoints_root_dir: os.PathLike,
     ) -> pathlib.Path:
         """Get the dataloaders dict save path."""
-        # Using common torch convention to save checkpoints using the .tar file extension
         path = pathlib.Path(
-            self.checkpoints_root_dir,
-            "dataloaders_dict.tar",
+            checkpoints_root_dir,
+            cls._DATALOADERS_DICT_FILE_NAME,
         )
         return path
 
@@ -182,23 +187,27 @@ class TrainingLoopState:
             "training_logs": self.training_logs,
         }
 
-        if not self.checkpoint_data_dict_save_path.exists():
-            self.checkpoint_data_dict_save_path.parent.mkdir(
+        checkpoint_data_dict_save_path: pathlib.Path = self.get_checkpoint_data_dict_save_path(
+            checkpoints_root_dir=self.checkpoints_root_dir,
+        )
+
+        if not checkpoint_data_dict_save_path.exists():
+            checkpoint_data_dict_save_path.parent.mkdir(
                 parents=True,
                 exist_ok=True,
             )
 
         if verbosity >= Verbosity.NORMAL:
             logger.info(
-                msg=f"Saving checkpoint data dict to {self.checkpoint_data_dict_save_path = } ...",  # noqa: G004 - low overhead
+                msg=f"Saving checkpoint data dict to {checkpoint_data_dict_save_path = } ...",  # noqa: G004 - low overhead
             )
         torch.save(
             obj=checkpoint_data_dict,
-            f=self.checkpoint_data_dict_save_path,
+            f=checkpoint_data_dict_save_path,
         )
         if verbosity >= Verbosity.NORMAL:
             logger.info(
-                msg=f"Saving checkpoint data dict to {self.checkpoint_data_dict_save_path = } DONE",  # noqa: G004 - low overhead
+                msg=f"Saving checkpoint data dict to {checkpoint_data_dict_save_path = } DONE",  # noqa: G004 - low overhead
             )
 
         # # # #
@@ -209,30 +218,65 @@ class TrainingLoopState:
             "val_dataloader": self.val_dataloader,
             "datasets_for_topological_analysis_list": self.datasets_for_topological_analysis_list,
         }
+        dataloaders_dict_save_path: pathlib.Path = self.get_dataloaders_dict_save_path(
+            checkpoints_root_dir=self.checkpoints_root_dir,
+        )
 
-        if not self.dataloaders_dict_save_path.exists():
-            self.dataloaders_dict_save_path.parent.mkdir(
+        if not dataloaders_dict_save_path.exists():
+            dataloaders_dict_save_path.parent.mkdir(
                 parents=True,
                 exist_ok=True,
             )
 
         if verbosity >= Verbosity.NORMAL:
             logger.info(
-                msg=f"Saving dataloaders dict to {self.dataloaders_dict_save_path = } ...",  # noqa: G004 - low overhead
+                msg=f"Saving dataloaders dict to {dataloaders_dict_save_path = } ...",  # noqa: G004 - low overhead
             )
         torch.save(
             obj=dataloaders_dict,
-            f=self.dataloaders_dict_save_path,
+            f=dataloaders_dict_save_path,
         )
         if verbosity >= Verbosity.NORMAL:
             logger.info(
-                msg=f"Saving dataloaders dict to {self.dataloaders_dict_save_path = } DONE",  # noqa: G004 - low overhead
+                msg=f"Saving dataloaders dict to {dataloaders_dict_save_path = } DONE",  # noqa: G004 - low overhead
             )
 
         if verbosity >= Verbosity.NORMAL:
             logger.info(
                 msg=f"Saving checkpoint for {self.step = } DONE",  # noqa: G004 - low overhead
             )
+
+    # ---------------------------------------------------------------- factory
+    @classmethod
+    def from_checkpoints_root_dir(
+        cls,
+        checkpoints_root_dir: os.PathLike,
+        *,
+        map_location: str | torch.device | None = "cpu",
+    ) -> Self:
+        """Instantiate **directly** from an existing checkpoints folder.
+
+        Args:
+            checkpoints_root_dir:
+                Path like `/run/checkpoints/step=42`.
+            map_location:
+                `torch.load` device mapping.
+
+        Raises:
+            FileNotFoundError:
+                If either expected file is missing.
+            ValueError:
+                If `checkpoints_root_dir` does not match the step pattern.
+
+        """
+        checkpoints_root_dir = pathlib.Path(
+            checkpoints_root_dir,
+        )
+
+        msg = "Loading from checkpoint dir is not fully implemented yet."
+        raise NotImplementedError(
+            msg,
+        )
 
 
 def train(
@@ -273,23 +317,24 @@ def train(
                 msg=f"Loading from directory: {load_checkpoint_from_dir = } ...",  # noqa: G004 - low overhead
             )
 
-        # Load the checkpoint and dataloaders from the specified directory.
+        # Load the TrainingLoopState from the specified directory
+        training_loop_state: TrainingLoopState = TrainingLoopState.from_checkpoints_root_dir(
+            checkpoints_root_dir=pathlib.Path(
+                load_checkpoint_from_dir,
+            ),
+            map_location=device,
+        )
 
-        # TODO: Implement this
-        logger.warning(
-            msg="Loading from checkpoint dir is not fully implemented yet.",
-        )
-        msg = "Loading from checkpoint dir is not fully implemented yet."
-        raise NotImplementedError(
-            msg,
-        )
+        # Make sure that we increase the step by 1 after loading the checkpoint,
+        # because this is necessary to be consistent for the next training step iteration,
+        # since the training step increments only at the end of the training loop step after the saving.
+        training_loop_state.step += 1
 
         if verbosity >= Verbosity.NORMAL:
             logger.info(
                 msg=f"Loading from directory: {load_checkpoint_from_dir = } DONE",  # noqa: G004 - low overhead
             )
 
-        # TODO: Make sure that we increase the step by 1 after loading the checkpoint, because this is necessary to be consistent for the next training step iteration.
     else:
         if verbosity >= Verbosity.NORMAL:
             logger.info(
@@ -367,9 +412,6 @@ def train(
             lr_lambda=lambda s: min(s / train_cfg["warmup_steps"], 1),
         )
 
-        # Set step to 0 when starting training from scratch.
-        step = 0
-
         training_loop_state: TrainingLoopState = TrainingLoopState(
             model=model,
             optimizer=optimizer,
@@ -381,7 +423,7 @@ def train(
             datasets_for_topological_analysis_list=datasets_for_topological_analysis_list,
             output_dir=output_dir,
             device=device,
-            step=step,
+            step=0,  # Set step to 0 when starting training from scratch.
         )
 
         if verbosity >= Verbosity.NORMAL:
