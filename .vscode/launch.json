@@ -110,7 +110,9 @@
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "args": [
-                "train.load_checkpoint_from_dir='outputs/run/train_grokk/2025-04-22/14-15-06/checkpoints/step=150'",
+                // "train.load_checkpoint_from_dir=null", // <-- Train from scratch if no checkpoint dir is given (null corresponds to None in hydra)
+                "train.load_checkpoint_from_dir='outputs/run/train_grokk/2025-04-22/14-15-06/checkpoints/step=150'", // <-- Load from checkpoint dir
+                //
                 "train.save_checkpoints_every=50", // <-- For debugging the saving function: Save checkpoints more regularly 
                 //
                 "logging.training.log_example_batch_every=50", // <-- For debugging the logging function: Log example batches more regularly

@@ -253,6 +253,8 @@ class TrainingLoopState:
         checkpoints_root_dir: os.PathLike,
         *,
         map_location: str | torch.device | None = "cpu",
+        verbosity: Verbosity = Verbosity.NORMAL,
+        logger: logging.Logger = default_logger,
     ) -> Self:
         """Instantiate **directly** from an existing checkpoints folder.
 
@@ -273,6 +275,12 @@ class TrainingLoopState:
             checkpoints_root_dir,
         )
 
+        # TODO: Implement this loading.
+
+        logger.warning(
+            msg="Loading from checkpoint dir is not fully implemented yet. "
+            "This is a work in progress and may not work as expected.",
+        )
         msg = "Loading from checkpoint dir is not fully implemented yet."
         raise NotImplementedError(
             msg,
