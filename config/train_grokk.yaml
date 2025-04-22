@@ -41,6 +41,8 @@ topological_analysis:
 wandb:
   use_wandb: true
   wandb_project: grokking_replica
+  wandb_dir: wandb/${wandb.wandb_project}/
+  wandb_notes: "default notes"
 
 hydra:
   run:
@@ -49,6 +51,7 @@ hydra:
     dir: outputs/multirun/${hydra.job.name}/${now:%Y-%m-%d}/${now:%H-%M-%S}/
     subdir: ${hydra.job.override_dirname}/
   job:
+    chdir: False
     config:
       override_dirname:
         exclude_keys:

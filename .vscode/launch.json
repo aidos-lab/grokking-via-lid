@@ -19,20 +19,22 @@
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "args": [
+                "dataset=mod_sum_dataset",
                 "dataset.dataset_seed=42",
-                //
+                "dataset.p=97",
                 "dataset.frac_train=0.4",
                 //
                 // "train.weight_decay=0.0", // <-- No weight decay
-                // "train.weight_decay=0.01", // <-- Regular weight decay
-                "train.weight_decay=0.1", // <-- Large weight decay
+                "train.weight_decay=0.01", // <-- Regular weight decay
+                // "train.weight_decay=0.1", // <-- Large weight decay
                 //
-                "train.max_steps=1000000", // <-- 1 million steps
-                "topological_analysis.compute_estimates_every=100", // <-- compute local estimates only in large intervals
+                "train.max_steps=250000", // <-- 250k steps
+                "topological_analysis.compute_estimates_every=200", // <-- compute local estimates only in large intervals
                 "topological_analysis.create_projection_plot_every=1000", // <-- For debugging, create projection plots more regularly
                 //
                 "wandb.use_wandb=true",
                 "wandb.wandb_project=grokking_replica_debugging",
+                "wandb.wandb_notes='Debugging the training process'",
             ],
         },
         {

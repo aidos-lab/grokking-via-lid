@@ -23,10 +23,13 @@
 
 """Log information about a pandas DataFrame or an array."""
 
+from io import StringIO
 import logging
 import pprint
 
 import pandas as pd
+from rich.console import Console
+from rich.table import Table
 
 default_logger: logging.Logger = logging.getLogger(
     name=__name__,
@@ -93,3 +96,39 @@ def log_dataframe_info(
             logger.warning(
                 msg="The dataframe contains NaN values. Please make sure that this is intended.",
             )
+
+
+def rich_table_to_string(
+    df: pd.DataFrame,
+    max_rows: int = 10,
+    max_col_width: int = 30,
+) -> str:
+    """Convert a pandas DataFrame into a rich-formatted string table.
+
+    Args:
+        df: The DataFrame to convert.
+        max_rows: Maximum number of rows to show.
+        max_col_width: Maximum character width per column (truncate otherwise).
+
+    Returns:
+        A string containing the rich-formatted table.
+
+    """
+    table = Table(show_header=True, header_style="bold cyan")
+
+    for column in df.columns:
+        table.add_column(str(column), style="magenta", max_width=max_col_width)
+
+    # Optionally truncate the DataFrame to avoid huge logs
+    display_df = df.head(max_rows)
+
+    for _, row in display_df.iterrows():
+        formatted_row = [
+            str(val) if len(str(val)) <= max_col_width else str(val)[: max_col_width - 3] + "..." for val in row
+        ]
+        table.add_row(*formatted_row)
+
+    # Capture the printed output into a string buffer
+    console = Console(file=StringIO(), width=100)
+    console.print(table)
+    return console.file.getvalue()  # type: ignore - typing problem with IO

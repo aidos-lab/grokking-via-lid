@@ -168,6 +168,13 @@ NAME_PREFIXES_TO_FULL_AUGMENTED_DESCRIPTIONS: dict[
     "local_estimates_zerovec": "local_estimates_zero_vector_handling_mode",
 }
 
+GROKKING_REPOSITORY_BASE_PATH: str = os.path.expandvars(
+    path=os.getenv(
+        key="GROKKING_REPOSITORY_BASE_PATH",
+        default="${HOME}/git-source/grokking",
+    ),
+)
+
 # # # #
 # Limit for length of file names
 FILE_NAME_TRUNCATION_LENGTH: int = 200

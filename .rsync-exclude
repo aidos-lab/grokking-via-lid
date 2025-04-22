@@ -1,4 +1,8 @@
-# Note: Do NOT put comments on the same line as an exclude pattern, as they will be treated as part of the pattern.
+# Notes:
+# - Do NOT put comments on the same line as an exclude pattern,
+#   as they will be treated as part of the pattern.
+# - Do not put slashes behind the "backup" entries,
+#   so that we also exclude zipped backup files
 
 .hypothesis
 .pytest_cache
@@ -19,10 +23,10 @@ __pycache__
 # Large data directories
 data/
 outputs/
+outputs.backup.*
 
 # do NOT add a slash at the end of the next line, since then the symlink will be deleted on the remote machine:
 data/models/setsumbt_checkpoints
-
 
 # Log files
 logs/
@@ -34,12 +38,13 @@ hydra_output_dir.backup.*
 # Weights and Biases (wandb) directories
 wandb_output_dir/
 wandb/
+wandb.backup.*
 
 tmp_trainer/
 
 # OSX files
 .DS_Store
 
-# Optional: Exclude the pyproject.toml to prevent overwriting the HPC pip configuration 
+# Optional: Exclude the pyproject.toml to prevent overwriting the HPC pip configuration
 #
 # pyproject.toml
