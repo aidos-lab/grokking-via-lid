@@ -275,6 +275,59 @@ class TrainingLoopState:
             checkpoints_root_dir,
         )
 
+        checkpoint_data_dict_save_path: pathlib.Path = cls.get_checkpoint_data_dict_save_path(
+            checkpoints_root_dir=checkpoints_root_dir,
+        )
+        dataloaders_dict_save_path: pathlib.Path = cls.get_dataloaders_dict_save_path(
+            checkpoints_root_dir=checkpoints_root_dir,
+        )
+
+        for p in (
+            checkpoint_data_dict_save_path,
+            dataloaders_dict_save_path,
+        ):
+            if not p.is_file():
+                raise FileNotFoundError(
+                    p,
+                )
+
+        # Load the blobs
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg=f"Loading checkpoint data from {checkpoint_data_dict_save_path = } ...",  # noqa: G004 - low overhead
+            )
+        checkpoint_data: dict = torch.load(
+            f=checkpoint_data_dict_save_path,
+            map_location=map_location,
+        )
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg=f"Loading checkpoint data from {checkpoint_data_dict_save_path = } DONE",  # noqa: G004 - low overhead
+            )
+            logger.info(
+                msg=f"{checkpoint_data.keys() = }",  # noqa: G004 - low overhead
+            )
+
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg=f"Loading dataloaders from {dataloaders_dict_save_path = } ...",  # noqa: G004 - low overhead
+            )
+        # Note:
+        # - We need to set `weights_only=False` for this loading to work,
+        #   because otherwise there is an error with the custom types of the dataloaders.
+        dataloaders: dict = torch.load(
+            f=dataloaders_dict_save_path,
+            map_location=map_location,
+            weights_only=False,
+        )
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg=f"Loading dataloaders from {dataloaders_dict_save_path = } DONE",  # noqa: G004 - low overhead
+            )
+            logger.info(
+                msg=f"{dataloaders.keys() = }",  # noqa: G004 - low overhead
+            )
+
         # TODO: Implement this loading.
 
         logger.warning(
