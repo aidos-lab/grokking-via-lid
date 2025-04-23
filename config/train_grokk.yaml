@@ -43,6 +43,8 @@ topological_analysis:
 wandb:
   use_wandb: true
   wandb_project: grokking_replica
+  # In the python code, the absolute path to the wandb directory is set to
+  # $GROKKING_REPOSITORY_BASE_PATH/wandb_dir
   wandb_dir: wandb/${wandb.wandb_project}/
   wandb_notes: "default notes"
 

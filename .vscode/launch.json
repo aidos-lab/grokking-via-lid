@@ -302,14 +302,14 @@
                 // Notes:
                 // - Walltime of 72:00:00 works on our DSML nodes.
                 // - In general, on HHU Hilbert HPC, there is a walltime limit for GPU jobs.
-                "hydra.launcher.walltime=72:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
+                "hydra.launcher.walltime=72:00:00", // <-- We choose to run the training for long enough so that we can get up to 500k global steps.
                 //    >> END: Hydra options
                 //
                 // "dataset.dataset_seed=42",
                 // "dataset.dataset_seed=43,44", // <-- Two additional seeds
                 // "dataset.dataset_seed=43,44,45,46", // <-- Four additional seeds
                 // "dataset.dataset_seed=42,43,44,45,46", // <-- Five seeds
-                "dataset.dataset_seed=47",
+                "dataset.dataset_seed=47,48",
                 //
                 "dataset.frac_train=0.4",
                 //
