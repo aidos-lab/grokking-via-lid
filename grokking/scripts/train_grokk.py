@@ -422,6 +422,10 @@ class TrainingLoopState:
             step=checkpoint_data["step"],
         )
 
+        # TODO: Currently, there seems to be a slight problem when restarting training from a checkpoint,
+        # as the run does not seem to be fully deterministic.
+        # We might need to save and restore the random state of the generators.
+
         return reconstructed_object
 
 
@@ -623,6 +627,7 @@ def train(
         training_loop_state.train_dataloader,
         desc="Training loop.",
     ):
+        pass  # TODO: Remove later; this is here for setting a conditional breakpoint
         if training_log_example_batch_every > 0 and training_loop_state.step % training_log_example_batch_every == 0:
             log_example_batch(
                 x=x,
@@ -725,13 +730,13 @@ def train(
         # Optionally: Save the model, optimizer and dataloader
         #
         # Notes:
-        # - We use `step` instead of `step + 1` here,
-        #   because we want to also save the model for step == 0,
+        # - We use `step + 1` here,
+        #   because we do not want to save the model for step == 0,
         #   i.e., at the beginning of training.
         # - We save the dataloaders at the end of the training loop step,
         #   so that we can resume training from the last checkpoint,
         #   and the iterable loaders are at the correct position for the next step.
-        if save_checkpoints_every > 0 and training_loop_state.step % save_checkpoints_every == 0:
+        if save_checkpoints_every > 0 and (training_loop_state.step + 1) % save_checkpoints_every == 0:
             training_loop_state.save_to_folder(
                 verbosity=verbosity,
                 logger=logger,

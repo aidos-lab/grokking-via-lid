@@ -47,10 +47,13 @@ wandb:
   wandb_notes: "default notes"
 
 hydra:
+  # Notes:
+  # - We add the millisecond to the timestamp via '%f' to ensure that the directory is unique
+  #   when using multirun on the cluster.
   run:
-    dir: outputs/run/${hydra.job.name}/${now:%Y-%m-%d}/${now:%H-%M-%S}/
+    dir: outputs/run/${hydra.job.name}/${now:%Y-%m-%d}/${now:%H-%M-%S.%f}/
   sweep:
-    dir: outputs/multirun/${hydra.job.name}/${now:%Y-%m-%d}/${now:%H-%M-%S}/
+    dir: outputs/multirun/${hydra.job.name}/${now:%Y-%m-%d}/${now:%H-%M-%S.%f}/
     subdir: ${hydra.job.override_dirname}/
   job:
     chdir: False
