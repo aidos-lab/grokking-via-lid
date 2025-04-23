@@ -36,6 +36,7 @@ import hydra.core
 import pandas as pd
 import torch
 from omegaconf import DictConfig, OmegaConf
+from torch.optim.lr_scheduler import SequentialLR
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
@@ -76,14 +77,57 @@ default_device: torch.device = torch.device(
     device="cpu",
 )
 
+MODEL_CLASS = GrokkModel
+OPTIMIZER_CLASS = torch.optim.AdamW
+LR_SCHEDULE_CLASS = torch.optim.lr_scheduler.SequentialLR
+
+
+@dataclass(slots=True)
+class LRScheduleConfig:
+    """Configuration for the learning rate schedule."""
+
+    warmup_steps: int
+    total_steps: int
+
+    def build(
+        self,
+        optimizer: torch.optim.Optimizer,
+        last_step: int = -1,
+    ) -> SequentialLR:
+        warmup = torch.optim.lr_scheduler.LinearLR(
+            optimizer=optimizer,
+            start_factor=1.0 / 3.0,  # Note: This cannot be 0.0; we take the default value from torch.
+            end_factor=1.0,
+            total_iters=self.warmup_steps,
+            last_epoch=last_step,
+        )
+        constant = torch.optim.lr_scheduler.ConstantLR(
+            optimizer=optimizer,
+            factor=1.0,
+            total_iters=self.total_steps - self.warmup_steps,
+            last_epoch=last_step,
+        )
+        return torch.optim.lr_scheduler.SequentialLR(
+            optimizer=optimizer,
+            schedulers=[warmup, constant],
+            milestones=[self.warmup_steps],
+            last_epoch=last_step,
+        )
+
 
 @dataclass
 class TrainingLoopState:
     """Class to hold the state of the training loop."""
 
-    model: GrokkModel
+    model_init_kwargs: dict
+    model: MODEL_CLASS
+
+    optimizer_init_kwargs: dict
     optimizer: torch.optim.Optimizer
-    lr_schedule: torch.optim.lr_scheduler.LambdaLR
+
+    lr_schedule_init_kwargs: dict
+    lr_schedule: LR_SCHEDULE_CLASS
+
     training_logs: dict
 
     dataset: AbstractDataset
@@ -181,9 +225,12 @@ class TrainingLoopState:
         # https://pytorch.org/tutorials/beginner/saving_loading_models.html#saving-loading-a-general-checkpoint-for-inference-and-or-resuming-training
         checkpoint_data_dict: dict = {
             "step": self.step,
+            "model_init_kwargs": self.model_init_kwargs,
             "model_state_dict": self.model.state_dict(),
+            "optimizer_init_kwargs": self.optimizer_init_kwargs,
             "optimizer_state_dict": self.optimizer.state_dict(),
-            "lr_schedule": self.lr_schedule.state_dict(),
+            "lr_schedule_init_kwargs": self.lr_schedule_init_kwargs,
+            "lr_schedule_state_dict": self.lr_schedule.state_dict(),
             "training_logs": self.training_logs,
         }
 
@@ -251,6 +298,7 @@ class TrainingLoopState:
     def from_checkpoints_root_dir(
         cls,
         checkpoints_root_dir: os.PathLike,
+        output_dir: os.PathLike = default_output_dir,
         *,
         map_location: str | torch.device | None = "cpu",
         verbosity: Verbosity = Verbosity.NORMAL,
@@ -328,16 +376,53 @@ class TrainingLoopState:
                 msg=f"{dataloaders.keys() = }",  # noqa: G004 - low overhead
             )
 
-        # TODO: Implement this loading.
+        # --- reconstruct the individual objects ---
+        model = MODEL_CLASS(
+            **checkpoint_data["model_init_kwargs"],
+        )
+        model.load_state_dict(
+            state_dict=checkpoint_data["model_state_dict"],
+        )
+        model: MODEL_CLASS = model.to(
+            device=map_location,
+        )
 
-        logger.warning(
-            msg="Loading from checkpoint dir is not fully implemented yet. "
-            "This is a work in progress and may not work as expected.",
+        optimizer = OPTIMIZER_CLASS(
+            params=model.parameters(),
+            **checkpoint_data["optimizer_init_kwargs"],
         )
-        msg = "Loading from checkpoint dir is not fully implemented yet."
-        raise NotImplementedError(
-            msg,
+        optimizer.load_state_dict(
+            state_dict=checkpoint_data["optimizer_state_dict"],
         )
+
+        lr_schedule: SequentialLR = LRScheduleConfig(
+            **checkpoint_data["lr_schedule_init_kwargs"],
+        ).build(
+            optimizer=optimizer,
+            last_step=checkpoint_data["step"],
+        )
+        lr_schedule.load_state_dict(
+            state_dict=checkpoint_data["lr_schedule_state_dict"],
+        )
+
+        reconstructed_object: TrainingLoopState = cls(
+            model_init_kwargs=checkpoint_data["model_init_kwargs"],
+            model=model,
+            optimizer_init_kwargs=checkpoint_data["optimizer_init_kwargs"],
+            optimizer=optimizer,
+            lr_schedule_init_kwargs=checkpoint_data["lr_schedule_init_kwargs"],
+            lr_schedule=lr_schedule,
+            training_logs=checkpoint_data["training_logs"],
+            dataset=dataloaders["dataset"],
+            train_dataloader=dataloaders["train_dataloader"],
+            val_dataloader=dataloaders["val_dataloader"],
+            datasets_for_topological_analysis_list=dataloaders["datasets_for_topological_analysis_list"],
+            output_dir=output_dir,
+            device=torch.device(device=map_location) if map_location is not None else default_device,
+            step=checkpoint_data["step"],
+        )
+
+        return reconstructed_object
 
 
 def train(
@@ -383,7 +468,10 @@ def train(
             checkpoints_root_dir=pathlib.Path(
                 load_checkpoint_from_dir,
             ),
+            output_dir=output_dir,
             map_location=device,
+            verbosity=verbosity,
+            logger=logger,
         )
 
         # Make sure that we increase the step by 1 after loading the checkpoint,
@@ -395,7 +483,6 @@ def train(
             logger.info(
                 msg=f"Loading from directory: {load_checkpoint_from_dir = } DONE",  # noqa: G004 - low overhead
             )
-
     else:
         if verbosity >= Verbosity.NORMAL:
             logger.info(
@@ -452,30 +539,52 @@ def train(
         )
 
         # # # #
-        # Model
+        # Model, Optimizer, LR Scheduler
+        #
+        # Notes:
+        # - We collect the keyword args into separate objects,
+        #   so that we can save them to the checkpoint checkpoint data.
 
-        model: GrokkModel = load_item(
-            config["model"],
-            dataset.n_vocab,
-            dataset.n_out,
-            device,
+        model_init_kwargs: dict = {
+            "transformer_config": config["model"]["transformer_config"],
+            "vocab_size": dataset.n_vocab,
+            "output_size": dataset.n_out,
+            "device": device,
+        }
+        model: MODEL_CLASS = MODEL_CLASS(
+            **model_init_kwargs,
         )
+        model.to(device=device)
         model.train()
 
-        optimizer = torch.optim.AdamW(
+        optimizer_init_kwargs: dict = {
+            "lr": train_cfg["lr"],
+            "weight_decay": train_cfg["weight_decay"],
+            "betas": train_cfg["betas"],
+        }
+        optimizer: OPTIMIZER_CLASS = OPTIMIZER_CLASS(
             params=model.parameters(),
-            lr=train_cfg["lr"],
-            weight_decay=train_cfg["weight_decay"],
-            betas=train_cfg["betas"],
+            **optimizer_init_kwargs,
         )
-        lr_schedule = torch.optim.lr_scheduler.LambdaLR(
+
+        lr_schedule_init_kwargs: dict = {
+            "warmup_steps": train_cfg["warmup_steps"],
+            "total_steps": train_cfg["max_steps"],
+        }
+        lr_schedule: SequentialLR = LRScheduleConfig(
+            warmup_steps=train_cfg["warmup_steps"],
+            total_steps=train_cfg["max_steps"],
+        ).build(
             optimizer=optimizer,
-            lr_lambda=lambda s: min(s / train_cfg["warmup_steps"], 1),
+            last_step=-1,  # -1 means the learning rate schedule starts from the beginning
         )
 
         training_loop_state: TrainingLoopState = TrainingLoopState(
+            model_init_kwargs=model_init_kwargs,
             model=model,
             optimizer=optimizer,
+            optimizer_init_kwargs=optimizer_init_kwargs,
+            lr_schedule_init_kwargs=lr_schedule_init_kwargs,
             lr_schedule=lr_schedule,
             training_logs={},
             dataset=dataset,
@@ -709,7 +818,7 @@ def batch_to_table_entry(
 def do_training_step(
     model: GrokkModel,
     optimizer: torch.optim.Optimizer,
-    lr_schedule: torch.optim.lr_scheduler.LambdaLR,
+    lr_schedule: torch.optim.lr_scheduler.LRScheduler,
     x: torch.Tensor,
     y: torch.Tensor,
     device: torch.device,
@@ -718,8 +827,8 @@ def do_training_step(
         loss,
         logs,
     ) = model.get_loss(
-        x=x.to(device),
-        y=y.to(device),
+        x=x.to(device=device),
+        y=y.to(device=device),
     )
     optimizer.zero_grad()
     loss.backward()
