@@ -24,8 +24,8 @@
                 "dataset.p=97",
                 "dataset.frac_train=0.4",
                 //
-                "train.load_checkpoint_from_dir=null", // <-- Train from scratch if no checkpoint dir is given (null corresponds to None in hydra)
-                // "train.load_checkpoint_from_dir='outputs/run/train_grokk/2025-04-23/11-59-48/checkpoints/step=500'", // <-- Load from checkpoint dir
+                // "train.load_checkpoint_from_dir=null", // <-- Train from scratch if no checkpoint dir is given (null corresponds to None in hydra)
+                "train.load_checkpoint_from_dir='outputs/run/train_grokk/2025-04-24/14-48-17.709719/checkpoints/step=799'", // <-- Load from checkpoint dir
                 //
                 // "train.weight_decay=0.0", // <-- No weight decay
                 "train.weight_decay=0.01", // <-- Regular weight decay
@@ -36,8 +36,8 @@
                 "topological_analysis.compute_estimates_every=200", // <-- compute local estimates only in large intervals
                 "topological_analysis.create_projection_plot_every=5000", // <-- For debugging, create projection plots more regularly
                 //
-                // "wandb.use_wandb=true",
-                "wandb.use_wandb=false",
+                "wandb.use_wandb=true",
+                // "wandb.use_wandb=false",
                 "wandb.wandb_project=grokking_replica_debugging",
                 "wandb.wandb_notes='Debugging the training process'",
             ],

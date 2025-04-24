@@ -28,11 +28,13 @@ import logging
 import os
 import pathlib
 import pprint
+import random
 from dataclasses import dataclass
 from typing import Self
 
 import hydra
 import hydra.core
+import numpy as np
 import pandas as pd
 import torch
 from omegaconf import DictConfig, OmegaConf
@@ -143,6 +145,7 @@ class TrainingLoopState:
     # Using common torch convention to save checkpoints using the .tar file extension
     _CHECKPOINT_DATA_DICT_FILE_NAME: str = "checkpoint_data_dict.tar"
     _DATALOADERS_DICT_FILE_NAME: str = "dataloaders_dict.tar"
+    _RNG_STATES_FILE_NAME: str = "rng_states.tar"
 
     def log_info(
         self,
@@ -207,6 +210,18 @@ class TrainingLoopState:
         )
         return path
 
+    @classmethod
+    def get_rng_states_save_path(
+        cls,
+        checkpoints_root_dir: os.PathLike,
+    ) -> pathlib.Path:
+        """Get the RNG state save path."""
+        path = pathlib.Path(
+            checkpoints_root_dir,
+            cls._RNG_STATES_FILE_NAME,
+        )
+        return path
+
     def save_to_folder(
         self,
         verbosity: Verbosity = Verbosity.NORMAL,
@@ -237,7 +252,6 @@ class TrainingLoopState:
         checkpoint_data_dict_save_path: pathlib.Path = self.get_checkpoint_data_dict_save_path(
             checkpoints_root_dir=self.checkpoints_root_dir,
         )
-
         if not checkpoint_data_dict_save_path.exists():
             checkpoint_data_dict_save_path.parent.mkdir(
                 parents=True,
@@ -265,10 +279,10 @@ class TrainingLoopState:
             "val_dataloader": self.val_dataloader,
             "datasets_for_topological_analysis_list": self.datasets_for_topological_analysis_list,
         }
+
         dataloaders_dict_save_path: pathlib.Path = self.get_dataloaders_dict_save_path(
             checkpoints_root_dir=self.checkpoints_root_dir,
         )
-
         if not dataloaders_dict_save_path.exists():
             dataloaders_dict_save_path.parent.mkdir(
                 parents=True,
@@ -286,6 +300,46 @@ class TrainingLoopState:
         if verbosity >= Verbosity.NORMAL:
             logger.info(
                 msg=f"Saving dataloaders dict to {dataloaders_dict_save_path = } DONE",  # noqa: G004 - low overhead
+            )
+
+        # # # #
+        # Save step 3: Save the random states.
+        #
+        # Notes:
+        # - We do not want to put the random state into the checkpoint data dict,
+        #   because this might lead to problems when mapping the tensors to another device.
+        #   When calling torch.set_rng_state(t) with tensor t not on the CPU, you get:
+        #   TypeError: RNG state must be a torch.ByteTensor
+
+        # --- Create dict of random states
+        rng_states: dict = {
+            "python": random.getstate(),
+            "numpy": np.random.get_state(),  # noqa: NPY002 - we specifically want to use the global numpy state here
+            "torch": torch.get_rng_state(),
+            "cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
+            "mps": torch.mps.get_rng_state() if torch.backends.mps.is_available() else None,
+        }
+
+        rng_states_save_path: pathlib.Path = self.get_rng_states_save_path(
+            checkpoints_root_dir=self.checkpoints_root_dir,
+        )
+        if not rng_states_save_path.exists():
+            rng_states_save_path.parent.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg=f"Saving RNG states to {rng_states_save_path = } ...",  # noqa: G004 - low overhead
+            )
+        torch.save(
+            obj=rng_states,
+            f=rng_states_save_path,
+        )
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg=f"Saving RNG states to {rng_states_save_path = } DONE",  # noqa: G004 - low overhead
             )
 
         if verbosity >= Verbosity.NORMAL:
@@ -329,17 +383,21 @@ class TrainingLoopState:
         dataloaders_dict_save_path: pathlib.Path = cls.get_dataloaders_dict_save_path(
             checkpoints_root_dir=checkpoints_root_dir,
         )
+        rng_states_save_path: pathlib.Path = cls.get_rng_states_save_path(
+            checkpoints_root_dir=checkpoints_root_dir,
+        )
 
         for p in (
             checkpoint_data_dict_save_path,
             dataloaders_dict_save_path,
+            rng_states_save_path,
         ):
             if not p.is_file():
                 raise FileNotFoundError(
                     p,
                 )
 
-        # Load the blobs
+        # --- Load the blobs ---
         if verbosity >= Verbosity.NORMAL:
             logger.info(
                 msg=f"Loading checkpoint data from {checkpoint_data_dict_save_path = } ...",  # noqa: G004 - low overhead
@@ -347,6 +405,7 @@ class TrainingLoopState:
         checkpoint_data: dict = torch.load(
             f=checkpoint_data_dict_save_path,
             map_location=map_location,
+            weights_only=False,
         )
         if verbosity >= Verbosity.NORMAL:
             logger.info(
@@ -376,7 +435,60 @@ class TrainingLoopState:
                 msg=f"{dataloaders.keys() = }",  # noqa: G004 - low overhead
             )
 
+        # --- Load and set the random states ---
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg=f"Loading RNG states from {rng_states_save_path = } ...",  # noqa: G004 - low overhead
+            )
+        # Note:
+        # - We need to set `weights_only=False` for this loading to work,
+        #   otherwise there is an error with the rng states in the dictionary.
+        # - Do not set a map_location here, because if the random states are on the wrong device,
+        #   this can lead to an error:
+        #   TypeError: RNG state must be a torch.ByteTensor
+        rng_states: dict = torch.load(
+            f=rng_states_save_path,
+            weights_only=False,
+        )
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg=f"Loading RNG states from {rng_states_save_path = } DONE",  # noqa: G004 - low overhead
+            )
+
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg="Setting random states ...",
+            )
+
+        random.setstate(
+            state=rng_states["python"],
+        )
+        np.random.set_state(  # noqa: NPY002 - we specifically want to re-seed the global numpy state here
+            state=rng_states["numpy"],
+        )
+        torch.set_rng_state(
+            new_state=rng_states["torch"],
+        )
+        if torch.cuda.is_available():
+            torch.cuda.set_rng_state_all(
+                new_states=rng_states["cuda"],
+            )
+        if torch.backends.mps.is_available():
+            torch.mps.set_rng_state(
+                new_state=rng_states["mps"],
+            )
+
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg="Setting random states DONE",
+            )
+
         # --- reconstruct the individual objects ---
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg="Reconstructing the individual objects ...",
+            )
+
         model = MODEL_CLASS(
             **checkpoint_data["model_init_kwargs"],
         )
@@ -405,6 +517,11 @@ class TrainingLoopState:
             state_dict=checkpoint_data["lr_schedule_state_dict"],
         )
 
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg="Reconstructing the individual objects DONE",
+            )
+
         reconstructed_object: TrainingLoopState = cls(
             model_init_kwargs=checkpoint_data["model_init_kwargs"],
             model=model,
@@ -421,10 +538,6 @@ class TrainingLoopState:
             device=torch.device(device=map_location) if map_location is not None else default_device,
             step=checkpoint_data["step"],
         )
-
-        # TODO: Currently, there seems to be a slight problem when restarting training from a checkpoint,
-        # as the run does not seem to be fully deterministic.
-        # We might need to save and restore the random state of the generators.
 
         return reconstructed_object
 
@@ -627,7 +740,6 @@ def train(
         training_loop_state.train_dataloader,
         desc="Training loop.",
     ):
-        pass  # TODO: Remove later; this is here for setting a conditional breakpoint
         if training_log_example_batch_every > 0 and training_loop_state.step % training_log_example_batch_every == 0:
             log_example_batch(
                 x=x,
@@ -744,7 +856,7 @@ def train(
 
         # # # #
         # Finalize training loop step
-        training_loop_state.step += 1  # noqa: SIM113 - we want to have manual control over the step variable
+        training_loop_state.step += 1  # >>> noqa: SIM113 - we want to have manual control over the step variable
 
         # Break condition
         if train_cfg["max_steps"] is not None and training_loop_state.step >= train_cfg["max_steps"]:
