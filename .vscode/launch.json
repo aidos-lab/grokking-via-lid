@@ -19,13 +19,14 @@
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "args": [
+                // "dataset=mod_subtract_dataset",
                 "dataset=mod_sum_dataset",
-                "dataset.dataset_seed=42",
                 "dataset.p=97",
                 "dataset.frac_train=0.4",
+                "dataset.dataset_seed=42",
                 //
-                // "train.load_checkpoint_from_dir=null", // <-- Train from scratch if no checkpoint dir is given (null corresponds to None in hydra)
-                "train.load_checkpoint_from_dir='outputs/run/train_grokk/2025-04-24/14-48-17.709719/checkpoints/step=799'", // <-- Load from checkpoint dir
+                "train.load_checkpoint_from_dir=null", // <-- Train from scratch if no checkpoint dir is given (null corresponds to None in hydra)
+                // "train.load_checkpoint_from_dir='outputs/run/train_grokk/2025-04-24/14-48-17.709719/checkpoints/step=799'", // <-- Load from checkpoint dir
                 //
                 // "train.weight_decay=0.0", // <-- No weight decay
                 "train.weight_decay=0.01", // <-- Regular weight decay
@@ -323,6 +324,59 @@
                 //
                 "wandb.use_wandb=true",
                 "wandb.wandb_project=grokking_replica_HHU_Hilbert_HPC_runs_very_long",
+            ],
+            "env": {
+                "PYTORCH_ENABLE_MPS_FALLBACK": "1"
+            }
+        },
+        {
+            "name": "Train model - HHU Hilbert HPC submission - Different operations and p values; Long runs; Multiple dataset seeds",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "grokking/scripts/train_grokk.py",
+            "console": "integratedTerminal",
+            "args": [
+                //    >> START: Hydra options
+                "--multirun",
+                "hydra/sweeper=basic",
+                // "hydra/launcher=basic", // <-- Use this for local submission
+                "hydra/launcher=hpc_submission", // <-- Use this for HHU Hilbert HPC submission
+                // >> DSML nodes:
+                "hydra.launcher.queue=DSML",
+                "hydra.launcher.template=DSML",
+                // >> GTX1080 nodes:
+                // "hydra.launcher.queue=CUDA",
+                // "hydra.launcher.template=GTX1080",
+                // >> RTX6000 nodes:
+                // "hydra.launcher.queue=CUDA",
+                // "hydra.launcher.template=RTX6000",
+                "hydra.launcher.memory=32",
+                "hydra.launcher.ncpus=2",
+                "hydra.launcher.ngpus=1",
+                // Notes:
+                // - Walltime of 72:00:00 works on our DSML nodes.
+                // - In general, on HHU Hilbert HPC, there is a walltime limit for GPU jobs.
+                "hydra.launcher.walltime=72:00:00", // <-- We choose to run the training for long enough so that we can get up to 500k global steps.
+                //    >> END: Hydra options
+                //
+                "dataset=mod_subtract_dataset,mod_sum_dataset",
+                "dataset.p=96,97",
+                //
+                // "dataset.dataset_seed=42",
+                "dataset.dataset_seed=43,44,45", // <-- Three different seeds
+                //
+                "dataset.frac_train=0.4",
+                //
+                "train.weight_decay=0.01", // <-- Small weight decay
+                //
+                // > Parameters for long runs
+                "train.max_steps=400000", // <-- 400k steps (everything interesting should happen before that)
+                "train.save_checkpoints_every=10000",
+                "topological_analysis.compute_estimates_every=500", // <-- compute local estimates only in large intervals
+                "topological_analysis.create_projection_plot_every=10000", // <-- create projection plot only in large intervals
+                //
+                "wandb.use_wandb=true",
+                "wandb.wandb_project=grokking_replica_HHU_Hilbert_HPC_runs_different_operations_and_p_values_long",
             ],
             "env": {
                 "PYTORCH_ENABLE_MPS_FALLBACK": "1"

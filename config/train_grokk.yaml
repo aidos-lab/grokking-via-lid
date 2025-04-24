@@ -56,12 +56,13 @@ hydra:
     dir: outputs/run/${hydra.job.name}/${now:%Y-%m-%d}/${now:%H-%M-%S.%f}/
   sweep:
     dir: outputs/multirun/${hydra.job.name}/${now:%Y-%m-%d}/${now:%H-%M-%S.%f}/
-    subdir: ${hydra.job.override_dirname}/
+    subdir: ${sanitize_override_dirname:${hydra.job.override_dirname}}/seed=${train.global_seed}/
   job:
     chdir: False
     config:
       override_dirname:
         exclude_keys:
+          - train.global_seed
           - wandb.use_wandb
           - wandb.wandb_project
 
