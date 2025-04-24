@@ -33,38 +33,59 @@ fi
 
 # Construct the full path to the project directory
 WANDB_OUTPUT_DIR_PATH="${!THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME}/wandb/"
-WANDB_PROJECT_DIR_PATH="${WANDB_OUTPUT_DIR_PATH}"
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+WANDB_PROJECT_NAMES=(
+  "grokking_replica"
+  "grokking_replica_HHU_Hilbert_HPC_runs_very_long"
+)
 
-# Loop through all matching offline run directories.
-# Note: No quotes around the wildcard pattern, because we want to expand it.
-for OFFLINE_RUN_DIR in "${WANDB_PROJECT_DIR_PATH}"/offline-*; do
-  # Check if any matches were found
-  if [ -d "$OFFLINE_RUN_DIR" ]; then
-    if [ "$DRY_RUN" = true ]; then
-      echo ">>> [DRY RUN] Would sync: ${OFFLINE_RUN_DIR}"
-    else
-      echo ">>> Syncing ${OFFLINE_RUN_DIR} to Weights and Biases ..."
+for WANDB_PROJECT_NAME in "${WANDB_PROJECT_NAMES[@]}"; do
+  # Note:
+  # - There is another 'wandb' directory inside the project directory, this is not a mistake.
+  WANDB_PROJECT_DIR_PATH="${WANDB_OUTPUT_DIR_PATH}/${WANDB_PROJECT_NAME}/wandb/"
 
-      wandb sync \
-        --include-offline \
-        "${OFFLINE_RUN_DIR}"
+  echo ">>> Syncing Weights and Biases runs for project ${WANDB_PROJECT_NAME} ..."
+  echo ">>> Checking for runs in ${WANDB_PROJECT_DIR_PATH} ..."
 
-      # Exit if the sync command fails for any reason
-      if [ $? -ne 0 ]; then
-        echo "@@@ Error: Sync failed for ${OFFLINE_RUN_DIR}"
-        exit 1
-      fi
+  # Check if the directory exists
+  if [ ! -d "$WANDB_PROJECT_DIR_PATH" ]; then
+    echo "@@@ Error: Directory ${WANDB_PROJECT_DIR_PATH} does not exist."
+    echo "@@@ Skipping syncing for the project ${WANDB_PROJECT_NAME}."
 
-      echo ">>> Syncing ${OFFLINE_RUN_DIR} to Weights and Biases DONE"
-    fi
+    # Skip to the next project
+    continue
   fi
-done
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# Note: We usually do not need to sync the online runs,
-# because they are already synced automatically.
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+  # Loop through all matching offline run directories.
+  #
+  # Notes:
+  # - No quotes around the wildcard pattern, because we want to expand it.
+  # - We usually do not need to sync the online runs,
+  #   because they are already uploaded automatically on machines with internet access.
+  for OFFLINE_RUN_DIR in "${WANDB_PROJECT_DIR_PATH}"/offline-*; do
+    # Check if any matches were found
+    if [ -d "$OFFLINE_RUN_DIR" ]; then
+      if [ "$DRY_RUN" = true ]; then
+        echo ">>> [DRY RUN] Would sync: ${OFFLINE_RUN_DIR}"
+      else
+        echo ">>> Syncing ${OFFLINE_RUN_DIR} to Weights and Biases ..."
+
+        wandb sync \
+          --include-offline \
+          "${OFFLINE_RUN_DIR}"
+
+        # Exit if the sync command fails for any reason
+        if [ $? -ne 0 ]; then
+          echo "@@@ Error: Sync failed for ${OFFLINE_RUN_DIR}"
+          exit 1
+        fi
+
+        echo ">>> Syncing ${OFFLINE_RUN_DIR} to Weights and Biases DONE"
+      fi
+    fi
+  done
+done
 
 # Exit with the exit status of the last command
 exit $?
