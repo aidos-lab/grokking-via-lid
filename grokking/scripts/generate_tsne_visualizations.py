@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 
-from grokking.config_classes.local_estimates.plot_config import LocalEstminatesPlotConfig
+from grokking.config_classes.local_estimates.plot_config import LocalEstimatesPlotConfig
 from grokking.plotting.embedding_visualization.create_projected_data import create_projected_data
 from grokking.plotting.embedding_visualization.create_projection_plot import (
     create_projection_plot,
@@ -22,7 +22,7 @@ default_logger: logging.Logger = logging.getLogger(
 def generate_tsne_visualizations(
     input_and_hidden_states_array: InputAndHiddenStatesArray,
     pointwise_results_array_np: np.ndarray | None,
-    local_estimates_plot_config: LocalEstminatesPlotConfig,
+    local_estimates_plot_config: LocalEstimatesPlotConfig,
     saved_plots_local_estimates_projection_dir_absolute_path: pathlib.Path | None = None,
     verbosity: Verbosity = Verbosity.NORMAL,
     logger: logging.Logger = default_logger,

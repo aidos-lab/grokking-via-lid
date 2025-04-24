@@ -24,15 +24,20 @@
                 "dataset.p=97",
                 "dataset.frac_train=0.4",
                 //
+                "train.load_checkpoint_from_dir=null", // <-- Train from scratch if no checkpoint dir is given (null corresponds to None in hydra)
+                // "train.load_checkpoint_from_dir='outputs/run/train_grokk/2025-04-23/11-59-48/checkpoints/step=500'", // <-- Load from checkpoint dir
+                //
                 // "train.weight_decay=0.0", // <-- No weight decay
                 "train.weight_decay=0.01", // <-- Regular weight decay
                 // "train.weight_decay=0.1", // <-- Large weight decay
                 //
+                "train.save_checkpoints_every=200",
                 "train.max_steps=250000", // <-- 250k steps
                 "topological_analysis.compute_estimates_every=200", // <-- compute local estimates only in large intervals
-                "topological_analysis.create_projection_plot_every=1000", // <-- For debugging, create projection plots more regularly
+                "topological_analysis.create_projection_plot_every=5000", // <-- For debugging, create projection plots more regularly
                 //
-                "wandb.use_wandb=true",
+                // "wandb.use_wandb=true",
+                "wandb.use_wandb=false",
                 "wandb.wandb_project=grokking_replica_debugging",
                 "wandb.wandb_notes='Debugging the training process'",
             ],
@@ -91,6 +96,28 @@
                 "dataset.frac_train=0.4",
                 //
                 "train.weight_decay=0.0",
+                "train.save_checkpoints_every=50", // <-- For debugging the saving function: Save checkpoints more regularly 
+                //
+                "logging.training.log_example_batch_every=50", // <-- For debugging the logging function: Log example batches more regularly
+                //
+                "wandb.use_wandb=false",
+                "wandb.wandb_project=grokking_replica_debugging", // <-- not relevant for running without wandb
+            ],
+            "env": {
+                "WANDB_DISABLED": "true"
+            }
+        },
+        {
+            "name": "Train model - Local debugging - load from checkpoint dir - without wandb",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "grokking/scripts/train_grokk.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                // "train.load_checkpoint_from_dir=null", // <-- Train from scratch if no checkpoint dir is given (null corresponds to None in hydra)
+                "train.load_checkpoint_from_dir='outputs/run/train_grokk/2025-04-23/11-52-38/checkpoints/step=300'", // <-- Load from checkpoint dir
+                //
                 "train.save_checkpoints_every=50", // <-- For debugging the saving function: Save checkpoints more regularly 
                 //
                 "logging.training.log_example_batch_every=50", // <-- For debugging the logging function: Log example batches more regularly
@@ -272,21 +299,26 @@
                 "hydra.launcher.memory=32",
                 "hydra.launcher.ncpus=2",
                 "hydra.launcher.ngpus=1",
-                "hydra.launcher.walltime=59:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
+                // Notes:
+                // - Walltime of 72:00:00 works on our DSML nodes.
+                // - In general, on HHU Hilbert HPC, there is a walltime limit for GPU jobs.
+                "hydra.launcher.walltime=72:00:00", // <-- We choose to run the training for long enough so that we can get up to 500k global steps.
                 //    >> END: Hydra options
                 //
                 // "dataset.dataset_seed=42",
                 // "dataset.dataset_seed=43,44", // <-- Two additional seeds
-                "dataset.dataset_seed=43,44,45,46", // <-- Four additional seeds
+                // "dataset.dataset_seed=43,44,45,46", // <-- Four additional seeds
                 // "dataset.dataset_seed=42,43,44,45,46", // <-- Five seeds
+                "dataset.dataset_seed=47,48",
                 //
                 "dataset.frac_train=0.4",
                 //
                 "train.weight_decay=0.0,0.01", // <-- Two different weight decay values
                 //
                 // > Parameters for very long runs
+                "train.save_checkpoints_every=50000",
                 "train.max_steps=5000000", // <-- 5 million steps
-                "topological_analysis.compute_estimates_every=100", // <-- compute local estimates only in large intervals
+                "topological_analysis.compute_estimates_every=500", // <-- compute local estimates only in large intervals
                 "topological_analysis.create_projection_plot_every=10000", // <-- create projection plot only in large intervals
                 //
                 "wandb.use_wandb=true",

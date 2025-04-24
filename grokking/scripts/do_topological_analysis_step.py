@@ -13,7 +13,7 @@ from grokking.analysis.local_estimates_computation.global_and_pointwise_local_es
 )
 from grokking.config_classes.local_estimates.filtering_config import LocalEstimatesFilteringConfig
 from grokking.config_classes.local_estimates.local_estimates_config import LocalEstimatesConfig
-from grokking.config_classes.local_estimates.plot_config import LocalEstminatesPlotConfig, PlotSavingConfig
+from grokking.config_classes.local_estimates.plot_config import LocalEstimatesPlotConfig, PlotSavingConfig
 from grokking.config_classes.local_estimates.pointwise_config import LocalEstimatesPointwiseConfig
 from grokking.grokk_replica.grokk_model import GrokkModel
 from grokking.scripts.collect_hidden_states import collect_hidden_states, preprocess_hidden_states
@@ -189,7 +189,7 @@ def do_topological_analysis_step(
                             msg="Creating projection plot ...",
                         )
 
-                    local_estimates_plot_config = LocalEstminatesPlotConfig(
+                    local_estimates_plot_config = LocalEstimatesPlotConfig(
                         pca_n_components=None,  # Skip the PCA step
                         saving=PlotSavingConfig(
                             save_html=False,  # Since the .html is quite large, we skip saving it for now

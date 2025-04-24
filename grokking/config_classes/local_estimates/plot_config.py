@@ -32,7 +32,7 @@ class PlotSavingConfig(BaseModel):
     save_csv: bool = True
 
 
-class LocalEstminatesPlotConfig(BaseModel):
+class LocalEstimatesPlotConfig(BaseModel):
     """Configurations for specifying parameters of the local estimates plot."""
 
     pca_n_components: int | None = Field(

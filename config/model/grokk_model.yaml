@@ -2,6 +2,7 @@ defaults:
   - _self_
 
 name: grokk_model
+
 transformer_config:
   max_length: 5
   heads: 4
@@ -12,5 +13,3 @@ transformer_config:
   block_repeats: 1
   dropout: 0.1
   pre_norm: true
-checkpoint_path: null
-strict_load: true

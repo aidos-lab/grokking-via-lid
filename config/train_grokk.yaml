@@ -26,6 +26,8 @@ train:
   preferred_torch_backend: auto
   global_seed: 1234
   save_checkpoints_every: 50000
+  # Note: Use null to represent None in hydra config (https://stackoverflow.com/questions/76567692/hydra-how-to-express-none-in-config-files)
+  load_checkpoint_from_dir: null
 
 topological_analysis:
   compute_estimates_every: 100
@@ -41,14 +43,19 @@ topological_analysis:
 wandb:
   use_wandb: true
   wandb_project: grokking_replica
+  # In the python code, the absolute path to the wandb directory is set to
+  # $GROKKING_REPOSITORY_BASE_PATH/wandb_dir
   wandb_dir: wandb/${wandb.wandb_project}/
   wandb_notes: "default notes"
 
 hydra:
+  # Notes:
+  # - We add the millisecond to the timestamp via '%f' to ensure that the directory is unique
+  #   when using multirun on the cluster.
   run:
-    dir: outputs/run/${hydra.job.name}/${now:%Y-%m-%d}/${now:%H-%M-%S}/
+    dir: outputs/run/${hydra.job.name}/${now:%Y-%m-%d}/${now:%H-%M-%S.%f}/
   sweep:
-    dir: outputs/multirun/${hydra.job.name}/${now:%Y-%m-%d}/${now:%H-%M-%S}/
+    dir: outputs/multirun/${hydra.job.name}/${now:%Y-%m-%d}/${now:%H-%M-%S.%f}/
     subdir: ${hydra.job.override_dirname}/
   job:
     chdir: False

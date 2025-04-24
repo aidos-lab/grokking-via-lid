@@ -32,7 +32,7 @@ from pydantic import BaseModel, Field
 from grokking.config_classes.constants import ITEM_SEP, KV_SEP, NAME_PREFIXES
 from grokking.config_classes.local_estimates.filtering_config import LocalEstimatesFilteringConfig
 from grokking.config_classes.local_estimates.noise_config import LocalEstimatesNoiseConfig
-from grokking.config_classes.local_estimates.plot_config import LocalEstminatesPlotConfig
+from grokking.config_classes.local_estimates.plot_config import LocalEstimatesPlotConfig
 from grokking.config_classes.local_estimates.pointwise_config import LocalEstimatesPointwiseConfig
 from grokking.typing.enums import EstimatorMethodType
 
@@ -131,8 +131,8 @@ class LocalEstimatesConfig(BaseModel):
         description="Whether to compute global estimates.",
     )
 
-    plot: LocalEstminatesPlotConfig = Field(
-        default_factory=LocalEstminatesPlotConfig,
+    plot: LocalEstimatesPlotConfig = Field(
+        default_factory=LocalEstimatesPlotConfig,
         title="Plot configurations.",
         description="Configurations for specifying parameters of the local estimates plot.",
     )
