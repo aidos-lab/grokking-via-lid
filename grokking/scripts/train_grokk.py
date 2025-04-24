@@ -539,9 +539,6 @@ class TrainingLoopState:
             step=checkpoint_data["step"],
         )
 
-        # TODO: Currently, there seems to be a slight problem when restarting training from a checkpoint, as the run does not seem to be fully deterministic.
-        # TODO: Check if re-seeding the random states is enough to make the run deterministic.
-
         return reconstructed_object
 
 
@@ -743,7 +740,6 @@ def train(
         training_loop_state.train_dataloader,
         desc="Training loop.",
     ):
-        pass  # TODO: Remove later; this is here for setting a conditional breakpoint
         if training_log_example_batch_every > 0 and training_loop_state.step % training_log_example_batch_every == 0:
             log_example_batch(
                 x=x,
