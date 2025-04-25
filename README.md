@@ -1,16 +1,17 @@
-# GROKKING: GENERALIZATION BEYOND OVERFITTING ON SMALL ALGORITHMIC DATASETS
+# Private fork of the repository [Sea-Snell/grokking](https://github.com/Sea-Snell/grokking)
 
-Unofficial re-implementation of [this paper](https://mathai-iclr.github.io/papers/papers/MATHAI_29_paper.pdf) by Power et al.
+The original code, written by Charlie Snell, is an unofficial re-implementation of the paper [Grokking: Generalization Beyond Overfitting on Small Algorithmic Datasets](https://mathai-iclr.github.io/papers/papers/MATHAI_29_paper.pdf) by Power et al.
+This is a private fork of the repository [Sea-Snell/grokking](https://github.com/Sea-Snell/grokking).
 
-Code written by Charlie Snell.
+This has been extended to allow the computation of topological local estimates of the language model's hidden states during the training process.
 
 ## General setup
 
 1. Clone the repository, and move into the directory:
 
 ```bash
-git clone https://github.com/Sea-Snell/grokking.git
-cd grokking/
+git clone https://github.com/ben300694/grokking-private
+cd grokking-private/
 ```
 
 1. This package works with `uv`. If you already have `uv` installed, you can create a new environment as follows:
@@ -30,7 +31,7 @@ uv run python3
 In the interpreter, you can import the package as follows:
 
 ```bash
-Python 3.12.9 (main, Mar 17 2025, 21:36:21) [Clang 20.1.0 ] on darwin
+Python 3.12.9 (main, Mar 17 2025, 21:36:21) [Clang 20.1.0] on darwin
 Type "help", "copyright", "credits" or "license" for more information.
 >>> import grokking
 ```

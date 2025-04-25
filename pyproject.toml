@@ -1,7 +1,7 @@
 [project]
 name = "grokking"
 version = "0.1.0"
-description = "Add your description here"
+description = "Toy examples of grokking for small transformers on arithmetic tasks."
 readme = "README.md"
 requires-python = "~=3.12"
 dependencies = [
