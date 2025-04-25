@@ -14,21 +14,16 @@
 #
 
 
-"""Count the number of trainable parameters in a PyTorch model."""
+"""Setup OmegaConf with custom resolvers."""
 
-from torch import nn
+import omegaconf
+
+from grokking.config_classes.sanitize_dirname import sanitize_dirname
 
 
-def count_trainable_parameters(
-    model: nn.Module,
-) -> int:
-    """Count the number of trainable parameters in a PyTorch model.
-
-    Args:
-        model (nn.Module): The PyTorch model.
-
-    Returns:
-        int: The number of trainable parameters.
-
-    """
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+def setup_omega_conf() -> None:
+    """Set up OmegaConf with custom resolvers."""
+    omegaconf.OmegaConf.register_new_resolver(
+        name="sanitize_override_dirname",
+        resolver=sanitize_dirname,
+    )
