@@ -125,6 +125,23 @@ def do_topological_analysis_step(
                     logger=logger,
                 )
 
+                # Example:
+                # For p=96, there are 96 * 96 = 9216 possible pairs of elements.
+                # Since we have an autoregressive model, the state of the first operand is independent of the context,
+                # thus we have 96 different hidden states for the first operand.
+                # For the second operand, we have 96 * 96 = 9216 different hidden states.
+                #
+                # Thus for a train portion of 0.4, we have
+                # 96 * 96 * 0.4 + 96 = 9216 * 0.4 + 96 = 3686.4 + 96 = 3782.4
+                # different train hidden states.
+                # > self.hidden_states.shape=(3782, 128)
+                #
+                # For validation, we have
+                # 96 * 96 * 0.6 + 96 = 9216 * 0.6 + 96 = 5529.6 + 96 = 5625.6
+                # > self.hidden_states.shape=(5626, 128)
+                #
+                # Note that the number of hidden states is rounded up or down to the nearest integer.
+
                 if verbosity >= Verbosity.NORMAL:
                     logger.info(
                         msg="Preprocessing hidden states DONE",

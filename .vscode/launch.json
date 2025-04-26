@@ -75,7 +75,9 @@
                 "dataset.frac_train=0.4",
                 //
                 "train.weight_decay=0.0",
-                "train.save_checkpoints_every=50", // <-- For debugging the saving function: Save checkpoints more regularly 
+                "train.save_checkpoints_every=200", // <-- For debugging the saving function: Save checkpoints more regularly 
+                //
+                "logging.training.log_example_batch_every=200", // <-- For debugging the logging function: Log example batches more regularly
                 //
                 "wandb.use_wandb=false",
                 "wandb.wandb_project=grokking_replica_debugging", // <-- not relevant for running without wandb
@@ -85,21 +87,24 @@
             }
         },
         {
-            "name": "Train model - Local debugging - default settings - mod_sum_dataset - without wandb",
+            "name": "Train model - Local debugging - default settings - choose a different dataset - without wandb",
             "type": "debugpy",
             "request": "launch",
             "program": "grokking/scripts/train_grokk.py",
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "args": [
-                "dataset=mod_sum_dataset",
+                // "dataset=mod_sum_dataset",
+                "dataset=mod_division_dataset",
+                "dataset.p=97", // <-- For division, it makes sense to choose this as a prime number.
+                //
                 "dataset.dataset_seed=42",
                 "dataset.frac_train=0.4",
                 //
                 "train.weight_decay=0.0",
-                "train.save_checkpoints_every=50", // <-- For debugging the saving function: Save checkpoints more regularly 
+                "train.save_checkpoints_every=200", // <-- For debugging the saving function: Save checkpoints more regularly 
                 //
-                "logging.training.log_example_batch_every=50", // <-- For debugging the logging function: Log example batches more regularly
+                "logging.training.log_example_batch_every=200", // <-- For debugging the logging function: Log example batches more regularly
                 //
                 "wandb.use_wandb=false",
                 "wandb.wandb_project=grokking_replica_debugging", // <-- not relevant for running without wandb
@@ -359,18 +364,20 @@
                 "hydra.launcher.walltime=72:00:00", // <-- We choose to run the training for long enough so that we can get up to 500k global steps.
                 //    >> END: Hydra options
                 //
-                "dataset=mod_subtract_dataset,mod_sum_dataset",
-                "dataset.p=96,97",
+                // "dataset=mod_subtract_dataset,mod_sum_dataset",
+                "dataset=mod_subtract_dataset,mod_sum_dataset,mod_division_dataset", // <-- Make sure p is prime (e.g., p=97 works) for division.
+                "dataset.p=97",
                 //
                 // "dataset.dataset_seed=42",
-                "dataset.dataset_seed=43,44,45", // <-- Three different seeds
+                // "dataset.dataset_seed=43,44,45", // <-- Three different seeds
+                "dataset.dataset_seed=46,47,48",
                 //
                 "dataset.frac_train=0.4",
                 //
                 "train.weight_decay=0.01", // <-- Small weight decay
                 //
                 // > Parameters for long runs
-                "train.max_steps=400000", // <-- 400k steps (everything interesting should happen before that)
+                "train.max_steps=800000", // <-- 800k steps (everything interesting should happen before that)
                 "train.save_checkpoints_every=10000",
                 "topological_analysis.compute_estimates_every=500", // <-- compute local estimates only in large intervals
                 "topological_analysis.create_projection_plot_every=10000", // <-- create projection plot only in large intervals
