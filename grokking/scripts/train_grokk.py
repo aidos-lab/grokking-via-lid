@@ -715,11 +715,14 @@ def train(
             logger=logger,
         )
 
-    training_log_example_batch_every = logging_cfg["training"]["log_example_batch_every"]
-    number_of_entries_in_example_batch = logging_cfg["training"]["number_of_entries_in_example_batch"]
-    save_checkpoints_every = train_cfg["save_checkpoints_every"]
-    topological_analysis_compute_estimates_every = topological_analysis_cfg["compute_estimates_every"]
-    topological_analysis_create_projection_plot_every = topological_analysis_cfg["create_projection_plot_every"]
+    training_log_example_batch_every: int = logging_cfg["training"]["log_example_batch_every"]
+    number_of_entries_in_example_batch: int = logging_cfg["training"]["number_of_entries_in_example_batch"]
+    training_create_plot_of_model_output_parameters_every: int = logging_cfg["training"][
+        "create_plot_of_model_output_parameters_every"
+    ]
+    save_checkpoints_every: int = train_cfg["save_checkpoints_every"]
+    topological_analysis_compute_estimates_every: int = topological_analysis_cfg["compute_estimates_every"]
+    topological_analysis_create_projection_plot_every: int = topological_analysis_cfg["create_projection_plot_every"]
 
     # # # #
     # Training loop
@@ -828,6 +831,23 @@ def train(
                 device=training_loop_state.device,
                 verbosity=verbosity,
                 logger=logger,
+            )
+
+        # # # #
+        # Analyse the model parameters
+        if (
+            training_create_plot_of_model_output_parameters_every > 0
+            and (training_loop_state.step + 1) % training_create_plot_of_model_output_parameters_every == 0
+        ):
+            output_layer: torch.nn.modules.linear.Linear = training_loop_state.model.transformer.output
+
+            pass  # TODO: This is here for setting breakpoints, remove this later
+
+            # TODO: Implement this here
+            logger.warning(msg="Output parameter logging not fully implemented")
+            msg = "Output parameter logging not fully implemented"
+            raise NotImplementedError(
+                msg,
             )
 
         # # # #

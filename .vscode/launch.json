@@ -72,13 +72,17 @@
             "cwd": "${workspaceFolder}",
             "args": [
                 "dataset.dataset_seed=42",
+                "dataset.p=97",
                 //
                 "dataset.frac_train=0.4",
                 //
                 "train.weight_decay=0.0",
                 "train.save_checkpoints_every=200", // <-- For debugging the saving function: Save checkpoints more regularly 
                 //
+                "topological_analysis.compute_estimates_every=200",
+                //
                 "logging.training.log_example_batch_every=200", // <-- For debugging the logging function: Log example batches more regularly
+                "logging.training.create_plot_of_model_output_parameters_every=100", // <-- For debugging the logging function: Create plots more regularly
                 //
                 "wandb.use_wandb=false",
                 "wandb.wandb_project=grokking_replica_debugging", // <-- not relevant for running without wandb
