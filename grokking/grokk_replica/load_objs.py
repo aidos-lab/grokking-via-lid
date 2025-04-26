@@ -22,6 +22,7 @@ from collections.abc import Callable
 
 from grokking.grokk_replica.datasets import (
     ModDivisonDataset,
+    ModMultiplyDataset,
     ModSubtractDataset,
     ModSumDataset,
     PermutationGroup,
@@ -51,18 +52,23 @@ def load_item(
     verbosity: Verbosity = Verbosity.NORMAL,
     logger: logging.Logger = default_logger,
 ):
-    config = config.copy()
-    name = config.pop(
+    config_copy: dict = config.copy()
+    name = config_copy.pop(
         "name",
     )
     if name not in registry:
-        raise NotImplementedError
+        msg: str = f"{name=} is not in the registry. Available names are: {registry.keys()}"
+        raise NotImplementedError(
+            msg,
+        )
+
+    # The name will determine the class to be loaded
     if verbosity >= Verbosity.NORMAL:
         logger.info(
-            msg=f"Loading {name = }:\n{config = }",  # noqa: G004 - low overhead
+            msg=f"Loading {name = }:\n{config_copy = }",  # noqa: G004 - low overhead
         )
     return registry[name](
-        config,
+        config_copy,
         *args,
         verbosity=verbosity,
         logger=logger,
@@ -89,6 +95,19 @@ def load_mod_subtract_dataset(
     logger: logging.Logger = default_logger,
 ) -> ModSubtractDataset:
     return ModSubtractDataset(
+        p=config["p"],
+        frac_train=config["frac_train"],
+        dataset_seed=config["dataset_seed"],
+    )
+
+
+@register(name="mod_multiply_dataset")
+def load_mod_multiply_dataset(
+    config: dict,
+    verbosity: Verbosity = Verbosity.NORMAL,
+    logger: logging.Logger = default_logger,
+) -> ModMultiplyDataset:
+    return ModMultiplyDataset(
         p=config["p"],
         frac_train=config["frac_train"],
         dataset_seed=config["dataset_seed"],

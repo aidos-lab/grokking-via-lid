@@ -90,7 +90,7 @@ class AbstractDataset(abc.ABC):
 
     def decode(
         self,
-        sequence,
+        sequence,  # Note: 'list' type is too strict here, since we also want to apply this to tensors
     ) -> list:
         return [self.idx2vocab[item] for item in sequence]
 
@@ -176,9 +176,9 @@ class ModSumDataset(AbstractDataset):
 
     def fetch_output(
         self,
-        a,
-        b,
-    ):
+        a: int,
+        b: int,
+    ) -> int:
         return (a + b) % self.p
 
 
@@ -199,10 +199,33 @@ class ModSubtractDataset(AbstractDataset):
 
     def fetch_output(
         self,
-        a,
-        b,
-    ):
+        a: int,
+        b: int,
+    ) -> int:
         return (a - b) % self.p
+
+
+class ModMultiplyDataset(AbstractDataset):
+    def __init__(
+        self,
+        p: int,
+        frac_train: float,
+        dataset_seed: int,
+    ) -> None:
+        super().__init__(
+            group_elements1=set(range(p)),
+            group_elements2=set(range(p)),
+            frac_train=frac_train,
+            dataset_seed=dataset_seed,
+        )
+        self.p: int = p
+
+    def fetch_output(
+        self,
+        a: int,
+        b: int,
+    ) -> int:
+        return (a * b) % self.p
 
 
 class ModDivisonDataset(AbstractDataset):
@@ -222,9 +245,9 @@ class ModDivisonDataset(AbstractDataset):
 
     def fetch_output(
         self,
-        a,
-        b,
-    ):
+        a: int,
+        b: int,
+    ) -> int:
         return (a * pow(b, self.p - 2, self.p)) % self.p
 
 
