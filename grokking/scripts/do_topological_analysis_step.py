@@ -139,6 +139,8 @@ def do_topological_analysis_step(
                 # For validation, we have
                 # 96 * 96 * 0.6 + 96 = 9216 * 0.6 + 96 = 5529.6 + 96 = 5625.6
                 # > self.hidden_states.shape=(5626, 128)
+                #
+                # Note that the number of hidden states is rounded up or down to the nearest integer.
 
                 if verbosity >= Verbosity.NORMAL:
                     logger.info(

@@ -35,7 +35,9 @@ topological_analysis:
   max_number_of_topo_batches: 100
   sampling_seed: 778
   # Note:
-  # - We choose 10000 as one of the sample sizes, since for p=96, this will select all operands. 
+  # - We choose 10000 as one of the sample sizes, since for p=96, this will select all operands.
+  #   If the value of p is changed, this assumption should be revisited to ensure that
+  #   the number of samples is large enough to cover all tokens under consideration.
   number_of_samples_choices: 
   - 3000
   - 10000
