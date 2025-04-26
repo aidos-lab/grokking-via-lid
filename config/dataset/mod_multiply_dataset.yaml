@@ -1,0 +1,6 @@
+defaults:
+  - _self_
+
+name: mod_multiply_dataset
+p: 97
+frac_train: 0.5

@@ -19,8 +19,9 @@
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "args": [
+                "dataset=mod_multiply_dataset",
                 // "dataset=mod_subtract_dataset",
-                "dataset=mod_sum_dataset",
+                // "dataset=mod_sum_dataset",
                 "dataset.p=97",
                 "dataset.frac_train=0.4",
                 "dataset.dataset_seed=42",
@@ -95,7 +96,8 @@
             "cwd": "${workspaceFolder}",
             "args": [
                 // "dataset=mod_sum_dataset",
-                "dataset=mod_division_dataset",
+                "dataset=mod_multiply_dataset",
+                // "dataset=mod_division_dataset",
                 "dataset.p=97", // <-- For division, it makes sense to choose this as a prime number.
                 //
                 "dataset.dataset_seed=42",
