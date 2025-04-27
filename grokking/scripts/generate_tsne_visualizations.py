@@ -23,7 +23,7 @@ def generate_tsne_visualizations(
     input_and_hidden_states_array: InputAndHiddenStatesArray,
     pointwise_results_array_np: np.ndarray | None,
     local_estimates_plot_config: LocalEstimatesPlotConfig,
-    saved_plots_local_estimates_projection_dir_absolute_path: pathlib.Path | None = None,
+    saved_plots_root_dir: pathlib.Path | None = None,
     verbosity: Verbosity = Verbosity.NORMAL,
     logger: logging.Logger = default_logger,
 ) -> None:
@@ -64,9 +64,9 @@ def generate_tsne_visualizations(
 
         number_of_points_in_plot: int = len(tsne_df)
 
-        if saved_plots_local_estimates_projection_dir_absolute_path is not None:
+        if saved_plots_root_dir is not None:
             output_folder = pathlib.Path(
-                saved_plots_local_estimates_projection_dir_absolute_path,
+                saved_plots_root_dir,
                 f"no-points-in-plot-{number_of_points_in_plot}",
             )
             if verbosity >= Verbosity.NORMAL:

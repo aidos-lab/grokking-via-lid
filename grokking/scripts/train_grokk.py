@@ -36,6 +36,7 @@ from tqdm.auto import tqdm
 
 import wandb
 from grokking.config_classes.constants import GROKKING_REPOSITORY_BASE_PATH
+from grokking.config_classes.local_estimates.plot_config import LocalEstimatesPlotConfig, PlotSavingConfig
 from grokking.grokk_replica.datasets import AbstractDataset
 from grokking.grokk_replica.grokk_model import GrokkModel
 from grokking.grokk_replica.load_objs import load_item
@@ -48,7 +49,9 @@ from grokking.model_handling.get_torch_device import get_torch_device
 from grokking.model_handling.set_seed import set_seed
 from grokking.scripts.dataset_for_topological_analysis import DatasetForTopologicalAnalysis
 from grokking.scripts.do_topological_analysis_step import do_topological_analysis_step
+from grokking.scripts.generate_tsne_visualizations import generate_tsne_visualizations
 from grokking.scripts.group_dataset import GroupDataset
+from grokking.scripts.input_and_hidden_states_array import InputAndHiddenStatesArray
 from grokking.typing.enums import Verbosity
 
 # Increase the wandb service wait time to prevent errors on HHU Hilbert.
@@ -715,11 +718,14 @@ def train(
             logger=logger,
         )
 
-    training_log_example_batch_every = logging_cfg["training"]["log_example_batch_every"]
-    number_of_entries_in_example_batch = logging_cfg["training"]["number_of_entries_in_example_batch"]
-    save_checkpoints_every = train_cfg["save_checkpoints_every"]
-    topological_analysis_compute_estimates_every = topological_analysis_cfg["compute_estimates_every"]
-    topological_analysis_create_projection_plot_every = topological_analysis_cfg["create_projection_plot_every"]
+    training_log_example_batch_every: int = logging_cfg["training"]["log_example_batch_every"]
+    number_of_entries_in_example_batch: int = logging_cfg["training"]["number_of_entries_in_example_batch"]
+    training_create_plot_of_model_output_parameters_every: int = logging_cfg["training"][
+        "create_plot_of_model_output_parameters_every"
+    ]
+    save_checkpoints_every: int = train_cfg["save_checkpoints_every"]
+    topological_analysis_compute_estimates_every: int = topological_analysis_cfg["compute_estimates_every"]
+    topological_analysis_create_projection_plot_every: int = topological_analysis_cfg["create_projection_plot_every"]
 
     # # # #
     # Training loop
@@ -829,6 +835,63 @@ def train(
                 verbosity=verbosity,
                 logger=logger,
             )
+
+        # # # #
+        # Analyse the model parameters
+        if (
+            training_create_plot_of_model_output_parameters_every > 0
+            and (training_loop_state.step + 1) % training_create_plot_of_model_output_parameters_every == 0
+        ):
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg="Creating plot of output layer ...",
+                )
+
+            output_layer: torch.nn.modules.linear.Linear = training_loop_state.model.transformer.output
+
+            # Example shapes for p=97:
+            # > output_layer.weight.shape
+            # > torch.Size([97, 128])
+            # > output_layer.bias.shape
+            # > torch.Size([97])
+
+            output_layer_weight_np: np.ndarray = output_layer.weight.cpu().detach().numpy()
+            # The vectors in the output layer correspond to the input_ids
+            # in the same order.
+            output_layer_input_and_hidden_states_array = InputAndHiddenStatesArray(
+                input_x=list(range(0, output_layer_weight_np.shape[0])),
+                hidden_states=output_layer_weight_np,
+            )
+
+            local_estimates_plot_config = LocalEstimatesPlotConfig(
+                pca_n_components=None,  # Skip the PCA step
+                saving=PlotSavingConfig(
+                    save_html=False,  # Since the .html is quite large, we skip saving it for now
+                    save_pdf=True,
+                    save_csv=True,
+                ),
+            )
+
+            saved_plots_output_layer_root_dir: pathlib.Path = pathlib.Path(
+                output_dir,
+                "plots",
+                "output_layer_projection",
+                f"step+1={training_loop_state.step + 1}",
+            )
+
+            generate_tsne_visualizations(
+                input_and_hidden_states_array=output_layer_input_and_hidden_states_array,
+                pointwise_results_array_np=None,
+                local_estimates_plot_config=local_estimates_plot_config,
+                saved_plots_root_dir=saved_plots_output_layer_root_dir,
+                verbosity=verbosity,
+                logger=logger,
+            )
+
+            if verbosity >= Verbosity.NORMAL:
+                logger.info(
+                    msg="Creating plot of output layer DONE",
+                )
 
         # # # #
         # Optionally: Save the model, optimizer and dataloader
@@ -1042,7 +1105,7 @@ def main(
         )
         if not wandb_output_dir.exists():
             logger.info(
-                msg=f"Creating wandb output directory: {wandb_output_dir=}",  # noqa: G004 - low overhead
+                msg=f"Creating wandb output directory:\n{wandb_output_dir=}",  # noqa: G004 - low overhead
             )
             wandb_output_dir.mkdir(
                 parents=True,

@@ -4,3 +4,4 @@ defaults:
 training:
   log_example_batch_every: 1000
   number_of_entries_in_example_batch: 10
+  create_plot_of_model_output_parameters_every: 1000
