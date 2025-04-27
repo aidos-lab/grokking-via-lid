@@ -229,7 +229,7 @@ def do_topological_analysis_step(
                         input_and_hidden_states_array=input_and_hidden_states_array_preprocessed,
                         pointwise_results_array_np=pointwise_results_array_np,
                         local_estimates_plot_config=local_estimates_plot_config,
-                        saved_plots_local_estimates_projection_dir_absolute_path=saved_plots_local_estimates_root_dir,
+                        saved_plots_root_dir=saved_plots_local_estimates_root_dir,
                         verbosity=verbosity,
                         logger=logger,
                     )

@@ -76,7 +76,7 @@
                 //
                 "dataset.frac_train=0.4",
                 //
-                "train.weight_decay=0.0",
+                "train.weight_decay=0.01",
                 "train.save_checkpoints_every=200", // <-- For debugging the saving function: Save checkpoints more regularly 
                 //
                 "topological_analysis.compute_estimates_every=200",
@@ -99,18 +99,21 @@
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "args": [
-                // "dataset=mod_sum_dataset",
-                "dataset=mod_multiply_dataset",
+                "dataset=mod_sum_dataset",
+                // "dataset=mod_multiply_dataset",
                 // "dataset=mod_division_dataset",
                 "dataset.p=97", // <-- For division, it makes sense to choose this as a prime number.
                 //
                 "dataset.dataset_seed=42",
                 "dataset.frac_train=0.4",
                 //
-                "train.weight_decay=0.0",
-                "train.save_checkpoints_every=200", // <-- For debugging the saving function: Save checkpoints more regularly 
+                "train.weight_decay=0.01",
+                "train.save_checkpoints_every=1000", // <-- For debugging the saving function: Save checkpoints more regularly 
+                //
+                "topological_analysis.compute_estimates_every=200",
                 //
                 "logging.training.log_example_batch_every=200", // <-- For debugging the logging function: Log example batches more regularly
+                "logging.training.create_plot_of_model_output_parameters_every=200", // <-- For debugging the logging function: Create plots more regularly
                 //
                 "wandb.use_wandb=false",
                 "wandb.wandb_project=grokking_replica_debugging", // <-- not relevant for running without wandb
@@ -385,6 +388,7 @@
                 // > Parameters for long runs
                 "train.max_steps=800000", // <-- 800k steps (everything interesting should happen before that)
                 "train.save_checkpoints_every=10000",
+                "logging.training.create_plot_of_model_output_parameters_every=5000",
                 "topological_analysis.compute_estimates_every=500", // <-- compute local estimates only in large intervals
                 "topological_analysis.create_projection_plot_every=10000", // <-- create projection plot only in large intervals
                 //

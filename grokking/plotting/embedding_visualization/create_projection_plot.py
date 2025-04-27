@@ -132,6 +132,9 @@ def create_projection_plot(
         },
         color_continuous_scale="Viridis",  # Optional: Choose a color scale
     )
+    figure.update_traces(
+        textposition="top center",
+    )
 
     return figure, tsne_df
 
