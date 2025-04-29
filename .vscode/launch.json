@@ -33,7 +33,7 @@
                 "train.weight_decay=0.01", // <-- Regular weight decay
                 // "train.weight_decay=0.1", // <-- Large weight decay
                 //
-                "train.save_checkpoints_every=200",
+                "train.save_checkpoints_every=2000",
                 "train.max_steps=250000", // <-- 250k steps
                 "topological_analysis.compute_estimates_every=200", // <-- compute local estimates only in large intervals
                 "topological_analysis.create_projection_plot_every=5000", // <-- For debugging, create projection plots more regularly
@@ -77,7 +77,7 @@
                 "dataset.frac_train=0.4",
                 //
                 "train.weight_decay=0.01",
-                "train.save_checkpoints_every=200", // <-- For debugging the saving function: Save checkpoints more regularly 
+                "train.save_checkpoints_every=2000", // <-- For debugging the saving function: Save checkpoints more regularly 
                 //
                 "topological_analysis.compute_estimates_every=200",
                 //
@@ -108,12 +108,14 @@
                 "dataset.frac_train=0.4",
                 //
                 "train.weight_decay=0.01",
-                "train.save_checkpoints_every=1000", // <-- For debugging the saving function: Save checkpoints more regularly 
+                "train.save_checkpoints_every=10000", // <-- For debugging the saving function: Save checkpoints more regularly 
                 //
-                "topological_analysis.compute_estimates_every=200",
+                // "topological_analysis.compute_estimates_every=200",
+                "topological_analysis.compute_estimates_every=1000",
                 //
                 "logging.training.log_example_batch_every=200", // <-- For debugging the logging function: Log example batches more regularly
-                "logging.training.create_plot_of_model_output_parameters_every=200", // <-- For debugging the logging function: Create plots more regularly
+                // "logging.training.create_plot_of_model_output_parameters_every=200", // <-- For debugging the logging function: Create plots more regularly
+                "logging.training.create_plot_of_model_output_parameters_every=1000", // <-- For debugging the logging function: Create plots more regularly
                 //
                 "wandb.use_wandb=false",
                 "wandb.wandb_project=grokking_replica_debugging", // <-- not relevant for running without wandb
@@ -167,8 +169,13 @@
                 "WANDB_DISABLED": "true"
             }
         },
-        // Note: Even though this page claims that the maximum duration of a GPU-Job is 47:59:59, we can sucessfully submit jobs with a duration of 59:00:00.
-        // https://wiki.hhu.de/display/HPC/Besonderheiten
+        // Notes: 
+        // - Even though this page claims that the maximum duration of a GPU-Job is 47:59:59, 
+        //   we can sucessfully submit jobs with a duration of 59:00:00.
+        //   https://wiki.hhu.de/display/HPC/Besonderheiten
+        //   On the DSML queue, we can even start jobs with a duration of 72:00:00.
+        // - The GTX1080TI and RTX6000 nodes have 20 CPU-Cores and 10 GPUs each, 
+        //   thus per GPU you should not use more than 2 CPUs.
         {
             "name": "Train model - HHU Hilbert HPC submission - Single Setup - without wandb",
             "type": "debugpy",
@@ -190,7 +197,7 @@
                 // "hydra.launcher.queue=CUDA",
                 // "hydra.launcher.template=RTX6000",
                 "hydra.launcher.memory=32",
-                "hydra.launcher.ncpus=2",
+                "hydra.launcher.ncpus=2", // <-- Make sure not to use more than 2 CPUs per GPU on the GTX1080TI and RTX6000 nodes.
                 "hydra.launcher.ngpus=1",
                 "hydra.launcher.walltime=59:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
                 //    >> END: Hydra options
@@ -231,7 +238,7 @@
                 // "hydra.launcher.queue=CUDA",
                 // "hydra.launcher.template=RTX6000",
                 "hydra.launcher.memory=32",
-                "hydra.launcher.ncpus=4",
+                "hydra.launcher.ncpus=2", // <-- Make sure not to use more than 2 CPUs per GPU on the GTX1080TI and RTX6000 nodes.
                 "hydra.launcher.ngpus=1",
                 "hydra.launcher.walltime=59:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
                 //    >> END: Hydra options
@@ -269,7 +276,7 @@
                 // "hydra.launcher.queue=CUDA",
                 // "hydra.launcher.template=RTX6000",
                 "hydra.launcher.memory=32",
-                "hydra.launcher.ncpus=4",
+                "hydra.launcher.ncpus=2", // <-- Make sure not to use more than 2 CPUs per GPU on the GTX1080TI and RTX6000 nodes.
                 "hydra.launcher.ngpus=1",
                 "hydra.launcher.walltime=59:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
                 //    >> END: Hydra options
@@ -312,7 +319,7 @@
                 // "hydra.launcher.queue=CUDA",
                 // "hydra.launcher.template=RTX6000",
                 "hydra.launcher.memory=32",
-                "hydra.launcher.ncpus=2",
+                "hydra.launcher.ncpus=2", // <-- Make sure not to use more than 2 CPUs per GPU on the GTX1080TI and RTX6000 nodes.
                 "hydra.launcher.ngpus=1",
                 // Notes:
                 // - Walltime of 72:00:00 works on our DSML nodes.
@@ -365,7 +372,7 @@
                 // "hydra.launcher.queue=CUDA",
                 // "hydra.launcher.template=RTX6000",
                 "hydra.launcher.memory=32",
-                "hydra.launcher.ncpus=2",
+                "hydra.launcher.ncpus=2", // <-- Make sure not to use more than 2 CPUs per GPU on the GTX1080TI and RTX6000 nodes.
                 "hydra.launcher.ngpus=1",
                 // Notes:
                 // - Walltime of 72:00:00 works on our DSML nodes.
@@ -373,13 +380,16 @@
                 "hydra.launcher.walltime=72:00:00", // <-- We choose to run the training for long enough so that we can get up to 500k global steps.
                 //    >> END: Hydra options
                 //
+                "dataset=mod_sum_dataset",
                 // "dataset=mod_subtract_dataset,mod_sum_dataset",
-                "dataset=mod_subtract_dataset,mod_sum_dataset,mod_division_dataset", // <-- Make sure p is prime (e.g., p=97 works) for division.
+                // "dataset=mod_subtract_dataset,mod_sum_dataset,mod_division_dataset", // <-- Make sure p is prime (e.g., p=97 works) for division.
+                // TODO: Run for mod_multiply_dataset
                 "dataset.p=97",
                 //
                 // "dataset.dataset_seed=42",
                 // "dataset.dataset_seed=43,44,45", // <-- Three different seeds
-                "dataset.dataset_seed=46,47,48",
+                // "dataset.dataset_seed=46,47,48",
+                "dataset.dataset_seed=49",
                 //
                 "dataset.frac_train=0.4",
                 //
@@ -387,8 +397,9 @@
                 //
                 // > Parameters for long runs
                 "train.max_steps=800000", // <-- 800k steps (everything interesting should happen before that)
-                "train.save_checkpoints_every=10000",
-                "logging.training.create_plot_of_model_output_parameters_every=5000",
+                "train.save_checkpoints_every=50000",
+                // "logging.training.create_plot_of_model_output_parameters_every=5000",
+                "logging.training.create_plot_of_model_output_parameters_every=1000",
                 "topological_analysis.compute_estimates_every=500", // <-- compute local estimates only in large intervals
                 "topological_analysis.create_projection_plot_every=10000", // <-- create projection plot only in large intervals
                 //
