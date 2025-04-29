@@ -29,12 +29,12 @@ import hydra.core
 import numpy as np
 import pandas as pd
 import torch
+import wandb
 from omegaconf import DictConfig, OmegaConf
 from torch.optim.lr_scheduler import SequentialLR
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
-import wandb
 from grokking.config_classes.constants import GROKKING_REPOSITORY_BASE_PATH
 from grokking.config_classes.local_estimates.plot_config import LocalEstimatesPlotConfig, PlotSavingConfig
 from grokking.grokk_replica.datasets import AbstractDataset
@@ -550,6 +550,7 @@ def train(
         )
 
     train_cfg: dict = config["train"]
+    optimizer_cfg: dict = train_cfg["optimizer"]
     logging_cfg: dict = config["logging"]
     topological_analysis_cfg: dict = config["topological_analysis"]
     wandb_cfg: dict = config["wandb"]
@@ -670,9 +671,10 @@ def train(
         model.train()
 
         optimizer_init_kwargs: dict = {
-            "lr": train_cfg["lr"],
-            "weight_decay": train_cfg["weight_decay"],
-            "betas": train_cfg["betas"],
+            "lr": optimizer_cfg["lr"],
+            "betas": optimizer_cfg["betas"],
+            "eps": optimizer_cfg["eps"],
+            "weight_decay": optimizer_cfg["weight_decay"],
         }
         optimizer: OPTIMIZER_CLASS = OPTIMIZER_CLASS(
             params=model.parameters(),
@@ -1002,6 +1004,7 @@ def do_training_step(
         x=x.to(device=device),
         y=y.to(device=device),
     )
+
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()

@@ -19,8 +19,8 @@
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
             "args": [
-                "dataset=mod_multiply_dataset",
-                // "dataset=mod_subtract_dataset",
+                // "dataset=mod_multiply_dataset",
+                "dataset=mod_subtract_dataset",
                 // "dataset=mod_sum_dataset",
                 "dataset.p=97",
                 "dataset.frac_train=0.4",
@@ -29,14 +29,21 @@
                 "train.load_checkpoint_from_dir=null", // <-- Train from scratch if no checkpoint dir is given (null corresponds to None in hydra)
                 // "train.load_checkpoint_from_dir='outputs/run/train_grokk/2025-04-24/14-48-17.709719/checkpoints/step=799'", // <-- Load from checkpoint dir
                 //
-                // "train.weight_decay=0.0", // <-- No weight decay
-                "train.weight_decay=0.01", // <-- Regular weight decay
-                // "train.weight_decay=0.1", // <-- Large weight decay
+                // "train.optimizer.weight_decay=0.0", // <-- No weight decay
+                "train.optimizer.weight_decay=0.01", // <-- Regular weight decay
+                // "train.optimizer.weight_decay=0.1", // <-- Large weight decay
+                "train.optimizer.eps=1e-7",
                 //
-                "train.save_checkpoints_every=2000",
+                "train.save_checkpoints_every=10000",
                 "train.max_steps=250000", // <-- 250k steps
-                "topological_analysis.compute_estimates_every=200", // <-- compute local estimates only in large intervals
-                "topological_analysis.create_projection_plot_every=5000", // <-- For debugging, create projection plots more regularly
+                //
+                // "topological_analysis.compute_estimates_every=200",
+                "topological_analysis.compute_estimates_every=1000", // <-- compute local estimates only in large intervals
+                //
+                // "topological_analysis.create_projection_plot_every=500", // <-- For debugging, create projection plots more regularly
+                "topological_analysis.create_projection_plot_every=10000",
+                // "logging.training.create_plot_of_model_output_parameters_every=500", // <-- For debugging the logging function: Create plots more regularly
+                "logging.training.create_plot_of_model_output_parameters_every=10000",
                 //
                 "wandb.use_wandb=true",
                 // "wandb.use_wandb=false",
@@ -76,13 +83,17 @@
                 //
                 "dataset.frac_train=0.4",
                 //
-                "train.weight_decay=0.01",
-                "train.save_checkpoints_every=2000", // <-- For debugging the saving function: Save checkpoints more regularly 
+                "train.optimizer.weight_decay=0.01",
+                // "train.optimizer.eps=1e-8", // eps=1e-8 is the default value in AdamW optimizer
+                "train.optimizer.eps=1e-7",
                 //
-                "topological_analysis.compute_estimates_every=200",
+                "train.save_checkpoints_every=5000", // <-- For debugging the saving function: Save checkpoints more regularly 
+                //
+                // "topological_analysis.compute_estimates_every=200",
+                "topological_analysis.compute_estimates_every=500",
                 //
                 "logging.training.log_example_batch_every=200", // <-- For debugging the logging function: Log example batches more regularly
-                "logging.training.create_plot_of_model_output_parameters_every=100", // <-- For debugging the logging function: Create plots more regularly
+                "logging.training.create_plot_of_model_output_parameters_every=500", // <-- For debugging the logging function: Create plots more regularly
                 //
                 "wandb.use_wandb=false",
                 "wandb.wandb_project=grokking_replica_debugging", // <-- not relevant for running without wandb
@@ -107,7 +118,7 @@
                 "dataset.dataset_seed=42",
                 "dataset.frac_train=0.4",
                 //
-                "train.weight_decay=0.01",
+                "train.optimizer.weight_decay=0.01",
                 "train.save_checkpoints_every=10000", // <-- For debugging the saving function: Save checkpoints more regularly 
                 //
                 // "topological_analysis.compute_estimates_every=200",
@@ -160,7 +171,7 @@
                 //
                 "dataset.frac_train=0.4",
                 //
-                "train.weight_decay=0.01",
+                "train.optimizer.weight_decay=0.01",
                 //
                 "wandb.use_wandb=false",
                 "wandb.wandb_project=grokking_replica_debugging", // <-- not relevant for running without wandb
@@ -206,7 +217,7 @@
                 //
                 "dataset.frac_train=0.4",
                 //
-                "train.weight_decay=0.01",
+                "train.optimizer.weight_decay=0.01",
                 //
                 "wandb.use_wandb=false",
                 "wandb.wandb_project=without_wandb",
@@ -288,7 +299,7 @@
                 //
                 "dataset.frac_train=0.4",
                 //
-                "train.weight_decay=0.01",
+                "train.optimizer.weight_decay=0.01",
                 //
                 "wandb.use_wandb=true",
                 "wandb.wandb_project=grokking_replica_HHU_Hilbert_HPC_runs",
@@ -335,7 +346,7 @@
                 //
                 "dataset.frac_train=0.4",
                 //
-                "train.weight_decay=0.0,0.01", // <-- Two different weight decay values
+                "train.optimizer.weight_decay=0.0,0.01", // <-- Two different weight decay values
                 //
                 // > Parameters for very long runs
                 "train.save_checkpoints_every=50000",
@@ -393,7 +404,7 @@
                 //
                 "dataset.frac_train=0.4",
                 //
-                "train.weight_decay=0.01", // <-- Small weight decay
+                "train.optimizer.weight_decay=0.01", // <-- Small weight decay
                 //
                 // > Parameters for long runs
                 "train.max_steps=800000", // <-- 800k steps (everything interesting should happen before that)
