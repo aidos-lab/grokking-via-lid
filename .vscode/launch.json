@@ -32,7 +32,7 @@
                 // "train.optimizer.weight_decay=0.0", // <-- No weight decay
                 "train.optimizer.weight_decay=0.01", // <-- Regular weight decay
                 // "train.optimizer.weight_decay=0.1", // <-- Large weight decay
-                "train.optimizer.eps=1e-7",
+                "train.optimizer.eps=1e-6", // TODO: Test out different choices here
                 //
                 "train.save_checkpoints_every=10000",
                 "train.max_steps=250000", // <-- 250k steps
@@ -391,31 +391,38 @@
                 "hydra.launcher.walltime=72:00:00", // <-- We choose to run the training for long enough so that we can get up to 500k global steps.
                 //    >> END: Hydra options
                 //
-                "dataset=mod_sum_dataset",
+                // "dataset=mod_sum_dataset",
+                // TODO: Run for mod_multiply_dataset
+                "dataset=mod_multiply_dataset",
                 // "dataset=mod_subtract_dataset,mod_sum_dataset",
                 // "dataset=mod_subtract_dataset,mod_sum_dataset,mod_division_dataset", // <-- Make sure p is prime (e.g., p=97 works) for division.
-                // TODO: Run for mod_multiply_dataset
                 "dataset.p=97",
                 //
                 // "dataset.dataset_seed=42",
-                // "dataset.dataset_seed=43,44,45", // <-- Three different seeds
+                "dataset.dataset_seed=43,44,45", // <-- Three different seeds
                 // "dataset.dataset_seed=46,47,48",
-                "dataset.dataset_seed=49",
+                // "dataset.dataset_seed=49",
                 //
                 "dataset.frac_train=0.4",
                 //
                 "train.optimizer.weight_decay=0.01", // <-- Small weight decay
+                // "train.optimizer.eps=1e-8", // <-- eps=1e-8 is the default value in AdamW optimizer
+                // "train.optimizer.eps=1e-6", // <-- We set eps to a larger value to see if this helps with instabilities in the training process
+                "train.optimizer.eps=1e-8,1e-7,1e-6",
                 //
                 // > Parameters for long runs
-                "train.max_steps=800000", // <-- 800k steps (everything interesting should happen before that)
+                // "train.max_steps=800000", // <-- 800k steps (everything interesting should happen before that)
+                "train.max_steps=2000000", // <-- 2 million steps
                 "train.save_checkpoints_every=50000",
+                //
                 // "logging.training.create_plot_of_model_output_parameters_every=5000",
-                "logging.training.create_plot_of_model_output_parameters_every=1000",
+                "logging.training.create_plot_of_model_output_parameters_every=2000",
+                //
                 "topological_analysis.compute_estimates_every=500", // <-- compute local estimates only in large intervals
                 "topological_analysis.create_projection_plot_every=10000", // <-- create projection plot only in large intervals
                 //
                 "wandb.use_wandb=true",
-                "wandb.wandb_project=grokking_replica_HHU_Hilbert_HPC_runs_different_operations_and_p_values_long",
+                "wandb.wandb_project=grokking_replica_HHU_Hilbert_HPC_runs_different_operations_and_p_values_long_with_regularization",
             ],
             "env": {
                 "PYTORCH_ENABLE_MPS_FALLBACK": "1"

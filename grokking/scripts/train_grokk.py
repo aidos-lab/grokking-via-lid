@@ -550,8 +550,10 @@ def train(
         )
 
     train_cfg: dict = config["train"]
+    max_steps: int = train_cfg["max_steps"]
     optimizer_cfg: dict = train_cfg["optimizer"]
     logging_cfg: dict = config["logging"]
+
     topological_analysis_cfg: dict = config["topological_analysis"]
     wandb_cfg: dict = config["wandb"]
     use_wandb: bool = wandb_cfg["use_wandb"]
@@ -733,13 +735,17 @@ def train(
     # Training loop
     training_loop_state.model.train()
 
+    progress_bar = tqdm(
+        training_loop_state.train_dataloader,
+        desc=f"Training loop",
+        total=max_steps,
+        position=0,
+    )
+
     for (
         x,
         y,
-    ) in tqdm(
-        training_loop_state.train_dataloader,
-        desc="Training loop.",
-    ):
+    ) in progress_bar:
         if training_log_example_batch_every > 0 and training_loop_state.step % training_log_example_batch_every == 0:
             log_example_batch(
                 x=x,
@@ -759,6 +765,17 @@ def train(
             y=y,
             device=training_loop_state.device,
         )
+        # Example of the `training_loop_state.training_logs` dict:
+        # > {
+        # >     "loss": (4.739171028137207, 512),
+        # >     "accuracy": (0.00390625, 512),
+        # >     "attn_entropy": (0.6624060869216919, 3072),
+        # >     "param_norm": (122.12102613376149, 1),
+        # > }
+
+        progress_bar.set_postfix(
+            ordered_dict=combine_logs(logs=[training_logs]),
+        )
 
         # # # #
         # Evaluation step
@@ -773,6 +790,7 @@ def train(
                 val_dataloader=training_loop_state.val_dataloader,
                 train_cfg=train_cfg,
                 device=training_loop_state.device,
+                use_tqdm_for_eval_step=False,
                 verbosity=verbosity,
                 logger=logger,
             )
@@ -813,7 +831,6 @@ def train(
                     data=training_loop_state.training_logs,
                 )
 
-            if verbosity >= Verbosity.NORMAL:
                 logger.info(
                     msg=f"Running evaluation for {training_loop_state.step + 1 = } DONE",  # noqa: G004 - low overhead
                 )
@@ -916,7 +933,7 @@ def train(
         training_loop_state.step += 1  # >>> noqa: SIM113 - we want to have manual control over the step variable
 
         # Break condition
-        if train_cfg["max_steps"] is not None and training_loop_state.step >= train_cfg["max_steps"]:
+        if max_steps is not None and training_loop_state.step >= max_steps:
             logger.info(
                 msg=f"Training loop finished after {training_loop_state.step + 1} steps by reaching max steps.",  # noqa: G004 - low overhead
             )
@@ -1018,10 +1035,24 @@ def do_eval_step(
     val_dataloader: DataLoader,
     train_cfg: dict,
     device: torch.device,
+    *,
+    use_tqdm_for_eval_step: bool = False,
     verbosity: Verbosity = Verbosity.NORMAL,
     logger: logging.Logger = default_logger,
 ) -> list[dict]:
     model.eval()
+
+    num_eval_batches = train_cfg["eval_batches"]
+
+    eval_iterable = enumerate(
+        iterable=val_dataloader,
+    )
+    if use_tqdm_for_eval_step:
+        eval_iterable = tqdm(
+            eval_iterable,
+            desc="Evaluating validation data.",
+            total=num_eval_batches,
+        )
 
     with torch.no_grad():
         all_val_logs = []
@@ -1031,12 +1062,10 @@ def do_eval_step(
                 val_x,
                 val_y,
             ),
-        ) in tqdm(
-            enumerate(iterable=val_dataloader),
-            desc="Evaluating validation data.",
-        ):
-            if i >= train_cfg["eval_batches"]:
+        ) in eval_iterable:
+            if i >= num_eval_batches:
                 break
+
             (
                 _,
                 val_logs,
@@ -1044,7 +1073,9 @@ def do_eval_step(
                 val_x.to(device),
                 val_y.to(device),
             )
-            all_val_logs.append(val_logs)
+            all_val_logs.append(
+                val_logs,
+            )
 
     model.train()
 
