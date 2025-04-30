@@ -55,7 +55,7 @@ def collect_hidden_states(
             _,
             _,
             hidden_states_over_layers_list,
-        ) = model.forward(
+        ) = model(
             x=topo_input_x.to(device),
         )
 
