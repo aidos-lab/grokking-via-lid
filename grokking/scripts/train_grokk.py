@@ -29,12 +29,12 @@ import hydra.core
 import numpy as np
 import pandas as pd
 import torch
-import wandb
 from omegaconf import DictConfig, OmegaConf
 from torch.optim.lr_scheduler import SequentialLR
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 
+import wandb
 from grokking.config_classes.constants import GROKKING_REPOSITORY_BASE_PATH
 from grokking.config_classes.local_estimates.plot_config import LocalEstimatesPlotConfig, PlotSavingConfig
 from grokking.grokk_replica.datasets import AbstractDataset
@@ -722,6 +722,29 @@ def train(
             logger=logger,
         )
 
+    if use_wandb:
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg="Adding wandb watch of model ...",
+            )
+
+        # Make a call to wandb.log() before the call to wandb.watch() to make sure the logging works correctly.
+        # https://community.wandb.ai/t/wandb-watch-not-logging-parameters/1197/14
+        wandb.log(
+            data={"step": training_loop_state.step},
+        )
+
+        wandb.watch(
+            models=training_loop_state.model,
+            log=wandb_cfg["watch"]["log"],
+            log_freq=wandb_cfg["watch"]["log_freq"],
+        )
+
+        if verbosity >= Verbosity.NORMAL:
+            logger.info(
+                msg="Adding wandb watch of model DONE",
+            )
+
     training_log_example_batch_every: int = logging_cfg["training"]["log_example_batch_every"]
     number_of_entries_in_example_batch: int = logging_cfg["training"]["number_of_entries_in_example_batch"]
     training_create_plot_of_model_output_parameters_every: int = logging_cfg["training"][
@@ -737,7 +760,7 @@ def train(
 
     progress_bar = tqdm(
         training_loop_state.train_dataloader,
-        desc=f"Training loop",
+        desc="Training loop",
         total=max_steps,
         position=0,
     )

@@ -32,7 +32,7 @@
                 // "train.optimizer.weight_decay=0.0", // <-- No weight decay
                 "train.optimizer.weight_decay=0.01", // <-- Regular weight decay
                 // "train.optimizer.weight_decay=0.1", // <-- Large weight decay
-                "train.optimizer.eps=1e-6", // TODO: Test out different choices here
+                "train.optimizer.eps=1e-6",
                 //
                 "train.save_checkpoints_every=10000",
                 "train.max_steps=250000", // <-- 250k steps
@@ -46,7 +46,9 @@
                 "logging.training.create_plot_of_model_output_parameters_every=10000",
                 //
                 "wandb.use_wandb=true",
-                // "wandb.use_wandb=false",
+                // "wandb.watch.log=gradients",
+                // "wandb.watch.log=parameters",
+                "wandb.watch.log=all",
                 "wandb.wandb_project=grokking_replica_debugging",
                 "wandb.wandb_notes='Debugging the training process'",
             ],

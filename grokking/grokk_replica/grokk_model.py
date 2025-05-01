@@ -82,11 +82,13 @@ class GrokkModel(nn.Module):
         torch.Tensor,
         dict,
     ]:
+        # Use model() instead of model.forward() to avoid problems with wandb logging of parameters:
+        # https://community.wandb.ai/t/wandb-watch-not-logging-parameters/1197/16
         (
             predictions,
             attns,
             _,
-        ) = self.forward(
+        ) = self(
             x=x,
         )
 
