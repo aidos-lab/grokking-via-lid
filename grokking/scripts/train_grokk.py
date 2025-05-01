@@ -783,6 +783,7 @@ def train(
         training_logs: dict = do_training_step(
             model=training_loop_state.model,
             optimizer=training_loop_state.optimizer,
+            clip_grad_norm_max_norm=optimizer_cfg["clip_grad_norm_max_norm"],
             lr_schedule=training_loop_state.lr_schedule,
             x=x,
             y=y,
@@ -1032,6 +1033,7 @@ def batch_to_table_entry(
 def do_training_step(
     model: GrokkModel,
     optimizer: torch.optim.Optimizer,
+    clip_grad_norm_max_norm: float | None,
     lr_schedule: torch.optim.lr_scheduler.LRScheduler,
     x: torch.Tensor,
     y: torch.Tensor,
@@ -1047,6 +1049,17 @@ def do_training_step(
 
     optimizer.zero_grad()
     loss.backward()
+
+    # Notes:
+    # - Using instructions from here:
+    #   https://stackoverflow.com/questions/54716377/how-to-do-gradient-clipping-in-pytorch
+    # - The gradient norm clipping works in place
+    if clip_grad_norm_max_norm is not None:
+        torch.nn.utils.clip_grad_norm_(
+            parameters=model.parameters(),
+            max_norm=clip_grad_norm_max_norm,
+        )
+
     optimizer.step()
     lr_schedule.step()
 
