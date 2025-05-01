@@ -47,7 +47,7 @@ def do_topological_analysis_step(
 ) -> None:
     if verbosity >= Verbosity.NORMAL:
         logger.info(
-            msg=f"Running topological analysis for {step + 1 = } ...",  # noqa: G004 - low overhead
+            msg=f"{step + 1 = }: Running topological analysis ...",  # noqa: G004 - low overhead
         )
 
     if verbosity >= Verbosity.DEBUG:
@@ -60,12 +60,13 @@ def do_topological_analysis_step(
         for dataset_for_topological_analysis in datasets_for_topological_analysis_list:
             if verbosity >= Verbosity.NORMAL:
                 logger.info(
-                    msg=f"Running topological analysis for {dataset_for_topological_analysis.split = } ...",  # noqa: G004 - low overhead
+                    msg=f"{step + 1 = }: Running topological analysis for "  # noqa: G004 - low overhead
+                    f"{dataset_for_topological_analysis.split = } ...",
                 )
 
             if verbosity >= Verbosity.NORMAL:
                 logger.info(
-                    msg="Collecting hidden states ...",
+                    msg=f"{step + 1 = }: Collecting hidden states ...",  # noqa: G004 - low overhead
                 )
 
             input_and_hidden_states_array: InputAndHiddenStatesArray = collect_hidden_states(
@@ -79,16 +80,11 @@ def do_topological_analysis_step(
 
             if verbosity >= Verbosity.NORMAL:
                 logger.info(
-                    msg="Collecting hidden states DONE",
+                    msg=f"{step + 1 = }: Collecting hidden states DONE",  # noqa: G004 - low overhead
                 )
 
             # # # #
             # Preprocess the hidden states
-            if verbosity >= Verbosity.NORMAL:
-                logger.info(
-                    msg="Preprocessing hidden states ...",
-                )
-
             topo_sampling_seed = topological_analysis_cfg["sampling_seed"]
             number_of_samples_choices: list[int] = topological_analysis_cfg["number_of_samples_choices"]
             absolute_n_neighbors_choices: list[int] = topological_analysis_cfg["absolute_n_neighbors_choices"]
@@ -104,8 +100,13 @@ def do_topological_analysis_step(
                 absolute_n_neighbors,
             ) in tqdm(
                 local_estimates_parameters_combinations,
-                desc="Iterating over different parameters for local estimates.",
+                desc=f"{step + 1 = }: Iterating over different parameters for local estimates.",
             ):
+                if verbosity >= Verbosity.NORMAL:
+                    logger.info(
+                        msg=f"{step + 1 = }: Preprocessing hidden states ...",  # noqa: G004 - low overhead
+                    )
+
                 local_estimates_config = LocalEstimatesConfig(
                     filtering=LocalEstimatesFilteringConfig(
                         num_samples=number_of_samples,
@@ -144,7 +145,7 @@ def do_topological_analysis_step(
 
                 if verbosity >= Verbosity.NORMAL:
                     logger.info(
-                        msg="Preprocessing hidden states DONE",
+                        msg=f"{step + 1 = }: Preprocessing hidden states DONE",  # noqa: G004 - low overhead
                     )
 
                 # # # #
@@ -240,7 +241,7 @@ def do_topological_analysis_step(
                         )
 
             logger.info(
-                msg=f"Running topological analysis for {dataset_for_topological_analysis.split = } ...",  # noqa: G004 - low overhead
+                msg=f"{step + 1 = }: Running topological analysis for {dataset_for_topological_analysis.split = } DONE",  # noqa: G004 - low overhead
             )
 
     if verbosity >= Verbosity.DEBUG:
@@ -251,5 +252,5 @@ def do_topological_analysis_step(
 
     if verbosity >= Verbosity.NORMAL:
         logger.info(
-            msg=f"Running topological analysis for {step + 1 = } DONE",  # noqa: G004 - low overhead
+            msg=f"{step + 1 = }: Running topological analysis DONE",  # noqa: G004 - low overhead
         )
