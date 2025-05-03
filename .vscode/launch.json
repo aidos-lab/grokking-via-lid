@@ -497,7 +497,9 @@
                 // "train.optimizer.eps=1e-8", // <-- eps=1e-8 is the default value in AdamW optimizer
                 "train.optimizer.eps=1e-6", // <-- We set eps to a larger value to see if this helps with instabilities in the training process
                 "train.optimizer.clip_grad_norm_max_norm=1.0",
-                // TODO: Implement and run this with a linear learning rate scheduler
+                //
+                // "train.lr_scheduler.lr_scheduler_type=constant",
+                "train.lr_scheduler.lr_scheduler_type=linear",
                 //
                 // > Parameters for long runs
                 "train.max_steps=600000", // <-- 600k steps
