@@ -186,7 +186,7 @@
         },
         // Notes: 
         // - Even though this page claims that the maximum duration of a GPU-Job is 47:59:59, 
-        //   we can sucessfully submit jobs with a duration of 59:00:00.
+        //   we can sucessfully submit jobs with a duration of 59:59:59.
         //   https://wiki.hhu.de/display/HPC/Besonderheiten
         //   On the DSML queue, we can even start jobs with a duration of 72:00:00.
         // - The GTX1080TI and RTX6000 nodes have 20 CPU-Cores and 10 GPUs each, 
@@ -214,7 +214,7 @@
                 "hydra.launcher.memory=32",
                 "hydra.launcher.ncpus=2", // <-- Make sure not to use more than 2 CPUs per GPU on the GTX1080TI and RTX6000 nodes.
                 "hydra.launcher.ngpus=1",
-                "hydra.launcher.walltime=59:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
+                "hydra.launcher.walltime=59:59:59", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
                 //    >> END: Hydra options
                 //
                 "dataset.dataset_seed=42",
@@ -255,7 +255,7 @@
                 "hydra.launcher.memory=32",
                 "hydra.launcher.ncpus=2", // <-- Make sure not to use more than 2 CPUs per GPU on the GTX1080TI and RTX6000 nodes.
                 "hydra.launcher.ngpus=1",
-                "hydra.launcher.walltime=59:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
+                "hydra.launcher.walltime=59:59:59", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
                 //    >> END: Hydra options
                 //
                 "dataset.dataset_seed=42",
@@ -293,7 +293,7 @@
                 "hydra.launcher.memory=32",
                 "hydra.launcher.ncpus=2", // <-- Make sure not to use more than 2 CPUs per GPU on the GTX1080TI and RTX6000 nodes.
                 "hydra.launcher.ngpus=1",
-                "hydra.launcher.walltime=59:00:00", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
+                "hydra.launcher.walltime=59:59:59", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
                 //    >> END: Hydra options
                 //
                 // "dataset.dataset_seed=42",
@@ -425,13 +425,84 @@
                 "train.save_checkpoints_every=50000",
                 //
                 // "logging.training.create_plot_of_model_output_parameters_every=5000",
-                "logging.training.create_plot_of_model_output_parameters_every=2000",
+                "logging.training.create_plot_of_model_output_parameters_every=10000",
                 //
                 "topological_analysis.compute_estimates_every=500", // <-- compute local estimates only in large intervals
-                "topological_analysis.create_projection_plot_every=10000", // <-- create projection plot only in large intervals
+                "topological_analysis.create_projection_plot_every=20000", // <-- create projection plot only in large intervals
                 //
                 "wandb.use_wandb=true",
                 "wandb.wandb_project=grokking_replica_HHU_Hilbert_HPC_runs_different_operations_and_p_values_long_with_regularization",
+            ],
+            "env": {
+                "PYTORCH_ENABLE_MPS_FALLBACK": "1"
+            }
+        },
+        {
+            "name": "Train model - HHU Hilbert HPC submission - Different dataset portions; Long runs; Multiple dataset seeds",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "grokking/scripts/train_grokk.py",
+            "console": "integratedTerminal",
+            "args": [
+                //    >> START: Hydra options
+                "--multirun",
+                "hydra/sweeper=basic",
+                // "hydra/launcher=basic", // <-- Use this for local submission
+                "hydra/launcher=hpc_submission", // <-- Use this for HHU Hilbert HPC submission
+                // >> DSML nodes:
+                // "hydra.launcher.queue=DSML",
+                // "hydra.launcher.template=DSML",
+                // >> GTX1080 nodes:
+                "hydra.launcher.queue=CUDA",
+                "hydra.launcher.template=GTX1080",
+                // >> RTX6000 nodes:
+                // "hydra.launcher.queue=CUDA",
+                // "hydra.launcher.template=RTX6000",
+                "hydra.launcher.memory=32",
+                "hydra.launcher.ncpus=2", // <-- Make sure not to use more than 2 CPUs per GPU on the GTX1080TI and RTX6000 nodes.
+                "hydra.launcher.ngpus=1",
+                // Notes:
+                // - Walltime of 72:00:00 works on our DSML nodes.
+                // - In general, on HHU Hilbert HPC, there is a walltime limit for GPU jobs.
+                "hydra.launcher.walltime=59:59:59",
+                // "hydra.launcher.walltime=72:00:00", // <-- We choose to run the training for long enough so that we can get up to 500k global steps.
+                //    >> END: Hydra options
+                //
+                // "dataset=mod_multiply_dataset",
+                // "dataset=mod_subtract_dataset",
+                "dataset=mod_sum_dataset",
+                "dataset.p=97",
+                //
+                // "dataset.dataset_seed=42",
+                "dataset.dataset_seed=43,44,45", // <-- Three different seeds
+                // "dataset.dataset_seed=46,47",
+                // "dataset.dataset_seed=48",
+                // "dataset.dataset_seed=46,47,48",
+                // "dataset.dataset_seed=49",
+                //
+                "dataset.frac_train=0.1,0.2,0.3,0.4,0.5", // <-- Different dataset portions
+                //
+                "train.optimizer.weight_decay=0.01", // <-- Small weight decay
+                // "train.optimizer.eps=1e-8", // <-- eps=1e-8 is the default value in AdamW optimizer
+                "train.optimizer.eps=1e-6", // <-- We set eps to a larger value to see if this helps with instabilities in the training process
+                "train.optimizer.clip_grad_norm_max_norm=1.0",
+                // TODO: Implement and run this with a linear learning rate scheduler
+                //
+                // > Parameters for long runs
+                "train.max_steps=600000", // <-- 600k steps
+                // "train.max_steps=800000", // <-- 800k steps (everything interesting should happen before that)
+                // "train.max_steps=1500000", // <-- 1.5 million steps
+                // "train.max_steps=2000000", // <-- 2 million steps do not finish in time for walltime 72:00:00 and topological_analysis.compute_estimates_every=500
+                "train.save_checkpoints_every=50000",
+                //
+                // "logging.training.create_plot_of_model_output_parameters_every=5000",
+                "logging.training.create_plot_of_model_output_parameters_every=10000",
+                //
+                "topological_analysis.compute_estimates_every=500", // <-- compute local estimates only in large intervals
+                "topological_analysis.create_projection_plot_every=20000", // <-- create projection plot only in large intervals
+                //
+                "wandb.use_wandb=true",
+                "wandb.wandb_project=grokking_replica_HHU_Hilbert_HPC_runs_different_dataset_portions_long",
             ],
             "env": {
                 "PYTORCH_ENABLE_MPS_FALLBACK": "1"
