@@ -52,7 +52,7 @@ from grokking.scripts.do_topological_analysis_step import do_topological_analysi
 from grokking.scripts.generate_tsne_visualizations import generate_tsne_visualizations
 from grokking.scripts.group_dataset import GroupDataset
 from grokking.scripts.input_and_hidden_states_array import InputAndHiddenStatesArray
-from grokking.typing.enums import Verbosity
+from grokking.typing.enums import LRSchedulerType, Verbosity
 
 # Increase the wandb service wait time to prevent errors on HHU Hilbert.
 # https://github.com/wandb/wandb/issues/5214
@@ -76,13 +76,14 @@ default_device: torch.device = torch.device(
 
 MODEL_CLASS = GrokkModel
 OPTIMIZER_CLASS = torch.optim.AdamW
-LR_SCHEDULE_CLASS = torch.optim.lr_scheduler.SequentialLR
+LR_SCHEDULER_CLASS = torch.optim.lr_scheduler.SequentialLR
 
 
 @dataclass(slots=True)
-class LRScheduleConfig:
+class LRSchedulerConfig:
     """Configuration for the learning rate schedule."""
 
+    lr_scheduler_type: LRSchedulerType
     warmup_steps: int
     total_steps: int
 
@@ -98,18 +99,42 @@ class LRScheduleConfig:
             total_iters=self.warmup_steps,
             last_epoch=last_step,
         )
-        constant = torch.optim.lr_scheduler.ConstantLR(
+
+        match self.lr_scheduler_type:
+            case LRSchedulerType.CONSTANT:
+                post_warmup_scheduler = torch.optim.lr_scheduler.ConstantLR(
+                    optimizer=optimizer,
+                    factor=1.0,
+                    total_iters=self.total_steps - self.warmup_steps,
+                    last_epoch=last_step,
+                )
+            case LRSchedulerType.LINEAR:
+                post_warmup_scheduler = torch.optim.lr_scheduler.LinearLR(
+                    optimizer=optimizer,
+                    start_factor=1.0,
+                    end_factor=0.0,
+                    total_iters=self.total_steps - self.warmup_steps,
+                    last_epoch=last_step,
+                )
+            case _:
+                msg = f"Unknown {self.lr_scheduler_type = }"
+                raise ValueError(
+                    msg,
+                )
+
+        result = torch.optim.lr_scheduler.SequentialLR(
             optimizer=optimizer,
-            factor=1.0,
-            total_iters=self.total_steps - self.warmup_steps,
+            schedulers=[
+                warmup,
+                post_warmup_scheduler,
+            ],
+            milestones=[
+                self.warmup_steps,
+            ],
             last_epoch=last_step,
         )
-        return torch.optim.lr_scheduler.SequentialLR(
-            optimizer=optimizer,
-            schedulers=[warmup, constant],
-            milestones=[self.warmup_steps],
-            last_epoch=last_step,
-        )
+
+        return result
 
 
 @dataclass
@@ -122,8 +147,8 @@ class TrainingLoopState:
     optimizer_init_kwargs: dict
     optimizer: torch.optim.Optimizer
 
-    lr_schedule_init_kwargs: dict
-    lr_schedule: LR_SCHEDULE_CLASS
+    lr_scheduler_init_kwargs: dict
+    lr_scheduler: LR_SCHEDULER_CLASS
 
     training_logs: dict
 
@@ -160,10 +185,14 @@ class TrainingLoopState:
         logger.info(
             msg=f"optimizer:\n{self.optimizer}",  # noqa: G004 - low overhead
         )
+
         # Note: The lr_schedule does not have a useful string representation,
-        # so we just print the class name.
+        # so we just print the class name and the __dict__.
         logger.info(
-            msg=f"lr_schedule:\n{self.lr_schedule.__class__.__name__}",  # noqa: G004 - low overhead
+            msg=f"lr_schedule:\n{self.lr_scheduler.__class__.__name__}",  # noqa: G004 - low overhead
+        )
+        logger.info(
+            msg=f"lr_schedule.__dict__:\n{pprint.pformat(object=self.lr_scheduler.__dict__)}",  # noqa: G004 - low overhead
         )
         logger.info(
             msg=f"{self.step = }",  # noqa: G004 - low overhead
@@ -236,11 +265,11 @@ class TrainingLoopState:
         checkpoint_data_dict: dict = {
             "step": self.step,
             "model_init_kwargs": self.model_init_kwargs,
-            "model_state_dict": self.model.state_dict(),
+            "model.state_dict": self.model.state_dict(),
             "optimizer_init_kwargs": self.optimizer_init_kwargs,
-            "optimizer_state_dict": self.optimizer.state_dict(),
-            "lr_schedule_init_kwargs": self.lr_schedule_init_kwargs,
-            "lr_schedule_state_dict": self.lr_schedule.state_dict(),
+            "optimizer.state_dict": self.optimizer.state_dict(),
+            "lr_scheduler_init_kwargs": self.lr_scheduler_init_kwargs,
+            "lr_scheduler.state_dict": self.lr_scheduler.state_dict(),
             "training_logs": self.training_logs,
         }
 
@@ -488,7 +517,7 @@ class TrainingLoopState:
             **checkpoint_data["model_init_kwargs"],
         )
         model.load_state_dict(
-            state_dict=checkpoint_data["model_state_dict"],
+            state_dict=checkpoint_data["model.state_dict"],
         )
         model: MODEL_CLASS = model.to(
             device=map_location,
@@ -499,17 +528,17 @@ class TrainingLoopState:
             **checkpoint_data["optimizer_init_kwargs"],
         )
         optimizer.load_state_dict(
-            state_dict=checkpoint_data["optimizer_state_dict"],
+            state_dict=checkpoint_data["optimizer.state_dict"],
         )
 
-        lr_schedule: SequentialLR = LRScheduleConfig(
-            **checkpoint_data["lr_schedule_init_kwargs"],
+        lr_scheduler: SequentialLR = LRSchedulerConfig(
+            **checkpoint_data["lr_scheduler_init_kwargs"],
         ).build(
             optimizer=optimizer,
             last_step=checkpoint_data["step"],
         )
-        lr_schedule.load_state_dict(
-            state_dict=checkpoint_data["lr_schedule_state_dict"],
+        lr_scheduler.load_state_dict(
+            state_dict=checkpoint_data["lr_scheduler.state_dict"],
         )
 
         if verbosity >= Verbosity.NORMAL:
@@ -522,8 +551,8 @@ class TrainingLoopState:
             model=model,
             optimizer_init_kwargs=checkpoint_data["optimizer_init_kwargs"],
             optimizer=optimizer,
-            lr_schedule_init_kwargs=checkpoint_data["lr_schedule_init_kwargs"],
-            lr_schedule=lr_schedule,
+            lr_scheduler_init_kwargs=checkpoint_data["lr_scheduler_init_kwargs"],
+            lr_scheduler=lr_scheduler,
             training_logs=checkpoint_data["training_logs"],
             dataset=dataloaders["dataset"],
             train_dataloader=dataloaders["train_dataloader"],
@@ -551,6 +580,7 @@ def train(
 
     train_cfg: dict = config["train"]
     max_steps: int = train_cfg["max_steps"]
+    lr_scheduler_cfg: dict = train_cfg["lr_scheduler"]
     optimizer_cfg: dict = train_cfg["optimizer"]
     logging_cfg: dict = config["logging"]
 
@@ -683,13 +713,13 @@ def train(
             **optimizer_init_kwargs,
         )
 
-        lr_schedule_init_kwargs: dict = {
-            "warmup_steps": train_cfg["warmup_steps"],
-            "total_steps": train_cfg["max_steps"],
+        lr_scheduler_init_kwargs: dict = {
+            "lr_scheduler_type": lr_scheduler_cfg["lr_scheduler_type"],
+            "warmup_steps": lr_scheduler_cfg["warmup_steps"],
+            "total_steps": max_steps,
         }
-        lr_schedule: SequentialLR = LRScheduleConfig(
-            warmup_steps=train_cfg["warmup_steps"],
-            total_steps=train_cfg["max_steps"],
+        lr_schedule: SequentialLR = LRSchedulerConfig(
+            **lr_scheduler_init_kwargs,
         ).build(
             optimizer=optimizer,
             last_step=-1,  # -1 means the learning rate schedule starts from the beginning
@@ -700,8 +730,8 @@ def train(
             model=model,
             optimizer=optimizer,
             optimizer_init_kwargs=optimizer_init_kwargs,
-            lr_schedule_init_kwargs=lr_schedule_init_kwargs,
-            lr_schedule=lr_schedule,
+            lr_scheduler_init_kwargs=lr_scheduler_init_kwargs,
+            lr_scheduler=lr_schedule,
             training_logs={},
             dataset=dataset,
             train_dataloader=train_dataloader,
@@ -784,7 +814,7 @@ def train(
             model=training_loop_state.model,
             optimizer=training_loop_state.optimizer,
             clip_grad_norm_max_norm=optimizer_cfg["clip_grad_norm_max_norm"],
-            lr_schedule=training_loop_state.lr_schedule,
+            lr_schedule=training_loop_state.lr_scheduler,
             x=x,
             y=y,
             device=training_loop_state.device,
@@ -823,7 +853,7 @@ def train(
                 "val": combine_logs(logs=all_val_logs),
                 "train": combine_logs(logs=[training_logs]),
                 "step": (training_loop_state.step + 1),
-                "lr": float(training_loop_state.lr_schedule.get_last_lr()[0]),
+                "lr": float(training_loop_state.lr_scheduler.get_last_lr()[0]),
             }
             training_loop_state.training_logs = out_log
 

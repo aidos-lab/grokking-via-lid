@@ -16,7 +16,6 @@ model:
 train:
   num_workers: 0
   bsize: 512
-  warmup_steps: 10
   eval_every: 10
   eval_batches: 8
   max_steps: 1e6
@@ -25,16 +24,19 @@ train:
   save_checkpoints_every: 50000
   # Note: Use null to represent None in hydra config (https://stackoverflow.com/questions/76567692/hydra-how-to-express-none-in-config-files)
   load_checkpoint_from_dir: null
+  lr_scheduler:
+    lr_scheduler_type: constant
+    warmup_steps: 10
   optimizer:
     lr: 1e-3
     betas: [0.9, 0.98]
-    weight_decay: 0.0
-    eps: 1e-8
+    weight_decay: 0.01
+    eps: 1e-6
     clip_grad_norm_max_norm: 1.0
 
 topological_analysis:
-  compute_estimates_every: 100
-  create_projection_plot_every: 10000
+  compute_estimates_every: 500
+  create_projection_plot_every: 20000
   max_number_of_topo_batches: 100
   sampling_seed: 778
   # Note:
@@ -57,7 +59,7 @@ wandb:
   wandb_notes: "default notes"
   watch:
     log: "gradients"
-    log_freq: 1000
+    log_freq: 5000
 
 hydra:
   # Notes:
