@@ -70,6 +70,19 @@ class ArtificialNoiseMode(StrEnum):
 
 
 # ==============================
+# Enums used for training
+# ==============================
+
+
+@unique
+class LRSchedulerType(StrEnum):
+    """Different types of learning rate schedulers."""
+
+    CONSTANT = auto()
+    LINEAR = auto()
+
+
+# ==============================
 # Enums used for local estimates
 # ==============================
 

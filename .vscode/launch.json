@@ -36,8 +36,12 @@
                 // "train.optimizer.clip_grad_norm_max_norm=null",
                 "train.optimizer.clip_grad_norm_max_norm=1.0",
                 //
+                "train.lr_scheduler.lr_scheduler_type=constant",
+                // "train.lr_scheduler.lr_scheduler_type=linear", // TODO: Test this
+                //
                 "train.save_checkpoints_every=10000",
-                "train.max_steps=250000", // <-- 250k steps
+                "train.max_steps=20000", // <-- 20k steps for debugging learning rate scheduler
+                // "train.max_steps=250000", // <-- 250k steps
                 //
                 // "topological_analysis.compute_estimates_every=200",
                 "topological_analysis.compute_estimates_every=1000", // <-- compute local estimates only in large intervals
@@ -87,11 +91,18 @@
                 //
                 "dataset.frac_train=0.4",
                 //
+                "train.load_checkpoint_from_dir=null", // <-- Train from scratch if no checkpoint dir is given (null corresponds to None in hydra)
+                // "train.load_checkpoint_from_dir='outputs/run/train_grokk/2025-05-03/12-09-39.284931/checkpoints/step=2499'", // <-- Load from checkpoint dir
+                //
                 "train.optimizer.weight_decay=0.01",
                 // "train.optimizer.eps=1e-8", // eps=1e-8 is the default value in AdamW optimizer
-                "train.optimizer.eps=1e-7",
+                "train.optimizer.eps=1e-6",
                 //
-                "train.save_checkpoints_every=5000", // <-- For debugging the saving function: Save checkpoints more regularly 
+                "train.lr_scheduler.lr_scheduler_type=constant",
+                // "train.lr_scheduler.lr_scheduler_type=linear",
+                //
+                "train.save_checkpoints_every=500", // <-- For debugging the saving function: Save checkpoints more regularly 
+                // "train.save_checkpoints_every=5000", // <-- For debugging the saving function: Save checkpoints more regularly 
                 //
                 // "topological_analysis.compute_estimates_every=200",
                 "topological_analysis.compute_estimates_every=500",
