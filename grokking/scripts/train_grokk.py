@@ -109,10 +109,12 @@ class LRSchedulerConfig:
                     last_epoch=last_step,
                 )
             case LRSchedulerType.LINEAR:
-                # TODO: Implement this
-                msg = "LinearLR is not implemented yet."
-                raise NotImplementedError(
-                    msg,
+                post_warmup_scheduler = torch.optim.lr_scheduler.LinearLR(
+                    optimizer=optimizer,
+                    start_factor=1.0,
+                    end_factor=0.0,
+                    total_iters=self.total_steps - self.warmup_steps,
+                    last_epoch=last_step,
                 )
             case _:
                 msg = f"Unknown {self.lr_scheduler_type = }"
@@ -183,10 +185,14 @@ class TrainingLoopState:
         logger.info(
             msg=f"optimizer:\n{self.optimizer}",  # noqa: G004 - low overhead
         )
+
         # Note: The lr_schedule does not have a useful string representation,
-        # so we just print the class name.
+        # so we just print the class name and the __dict__.
         logger.info(
             msg=f"lr_schedule:\n{self.lr_scheduler.__class__.__name__}",  # noqa: G004 - low overhead
+        )
+        logger.info(
+            msg=f"lr_schedule.__dict__:\n{pprint.pformat(object=self.lr_scheduler.__dict__)}",  # noqa: G004 - low overhead
         )
         logger.info(
             msg=f"{self.step = }",  # noqa: G004 - low overhead

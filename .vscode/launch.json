@@ -36,8 +36,8 @@
                 // "train.optimizer.clip_grad_norm_max_norm=null",
                 "train.optimizer.clip_grad_norm_max_norm=1.0",
                 //
-                "train.lr_scheduler.lr_scheduler_type=constant",
-                // "train.lr_scheduler.lr_scheduler_type=linear", // TODO: Test this
+                // "train.lr_scheduler.lr_scheduler_type=constant",
+                "train.lr_scheduler.lr_scheduler_type=linear",
                 //
                 "train.save_checkpoints_every=10000",
                 "train.max_steps=20000", // <-- 20k steps for debugging learning rate scheduler
@@ -98,11 +98,11 @@
                 // "train.optimizer.eps=1e-8", // eps=1e-8 is the default value in AdamW optimizer
                 "train.optimizer.eps=1e-6",
                 //
-                "train.lr_scheduler.lr_scheduler_type=constant",
-                // "train.lr_scheduler.lr_scheduler_type=linear",
+                // "train.lr_scheduler.lr_scheduler_type=constant",
+                "train.lr_scheduler.lr_scheduler_type=linear",
                 //
-                "train.save_checkpoints_every=500", // <-- For debugging the saving function: Save checkpoints more regularly 
-                // "train.save_checkpoints_every=5000", // <-- For debugging the saving function: Save checkpoints more regularly 
+                // "train.save_checkpoints_every=500", // <-- For debugging the saving function: Save checkpoints more regularly 
+                "train.save_checkpoints_every=5000", // <-- For debugging the saving function: Save checkpoints more regularly 
                 //
                 // "topological_analysis.compute_estimates_every=200",
                 "topological_analysis.compute_estimates_every=500",
