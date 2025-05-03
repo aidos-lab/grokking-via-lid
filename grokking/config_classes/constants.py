@@ -19,8 +19,10 @@
 
 import logging
 import os
+import pathlib
 
 from dotenv import load_dotenv
+
 
 default_logger: logging.Logger = logging.getLogger(
     name=__name__,
@@ -171,3 +173,7 @@ FILE_NAME_TRUNCATION_LENGTH: int = 200
 
 
 logger_section_separation_line = 30 * "="
+
+default_output_dir = pathlib.Path(
+    "outputs",
+)
