@@ -10,7 +10,7 @@ from grokking.scripts.dataset_for_topological_analysis import (
     DatasetForTopologicalAnalysis,
 )
 from grokking.scripts.input_and_hidden_states_array import InputAndHiddenStatesArray
-from grokking.typing.enums import Verbosity
+from grokking.typing.enums import TokenRestrictionMode, Verbosity
 
 default_logger: logging.Logger = logging.getLogger(
     name=__name__,
@@ -24,6 +24,9 @@ def collect_hidden_states(
     model: torch.nn.Module,
     topological_analysis_cfg: dict,
     dataset_for_topological_analysis: DatasetForTopologicalAnalysis,
+    token_restriction_mode: TokenRestrictionMode,
+    *,
+    make_copy_of_dataloader: bool = True,
     device: torch.device = default_device,
     verbosity: Verbosity = Verbosity.NORMAL,
     logger: logging.Logger = default_logger,
@@ -33,16 +36,41 @@ def collect_hidden_states(
     selected_hidden_states_list: list = []
     selected_input_x_list: list = []
 
-    # Note:
-    # - Currently, we use the same dataloader in each iteration where this topological analysis is run.
-    # - Thus, the embedded data is different for each iteration,
-    #   since we keep stepping through the iterable dataset.
+    match make_copy_of_dataloader:
+        case True:
+            # Make a deepcopy of the dataloader,
+            # so that we can iterate over it with the same state multiple times
+            dataloader_to_iterate_over = deepcopy(
+                x=dataset_for_topological_analysis.dataloader,
+            )
+        case False:
+            # - Here, we re-use the dataloader in each iteration where this topological analysis is run.
+            # - Thus, the embedded data is different for each iteration,
+            #   since we keep stepping through the iterable dataset.
+            dataloader_to_iterate_over = dataset_for_topological_analysis.dataloader
+
+    match token_restriction_mode:
+        case TokenRestrictionMode.RESTRICT_TO_OPERANDS:
+            # In this case are only interested in the hidden states of the operands,
+            # i.e., we want to exclude the operation token "o" and the equality token "=":
+            # Only select the 0th and 2nd token embeddings in the batch.
+            token_indices_to_select: list[int] = [0, 2]
+        case TokenRestrictionMode.TAKE_ALL:
+            # In this case we want to take all the tokens,
+            # i.e., we want to include the operation token "o" and the equality token "=":
+            # Select all the token embeddings in the batch.
+            token_indices_to_select: list[int] = [0, 1, 2, 3]
+        case _:
+            raise ValueError(
+                msg=f"Unknown token restriction mode: {token_restriction_mode!s}",
+            )
+
     for topo_batch_index, (
         topo_input_x,
         topo_input_y,
     ) in enumerate(
         iterable=tqdm(
-            dataset_for_topological_analysis.dataloader,
+            dataloader_to_iterate_over,
             desc=f"Collecting hidden states for {dataset_for_topological_analysis.split = }",
         ),
     ):
@@ -63,33 +91,30 @@ def collect_hidden_states(
         # > hidden_states_single_layer.shape = torch.Size([512, 4, 128])
         hidden_states_single_layer = hidden_states_over_layers_list[-1]
 
-        # Currently, we are only interested in the hidden states of the operands,
-        # i.e., we want to exclude the operation token "o" and the equality token "=":
-        # Only select the 0th and 2nd token embeddings in the batch.
-        # > only_operand_hidden_states.shape = torch.Size([512, 2, 128])
-        only_operand_hidden_states = hidden_states_single_layer[
+        # > only_operand_hidden_states.shape = torch.Size([512, 2 or 4, 128])
+        only_restricted_tokens_hidden_states = hidden_states_single_layer[
             :,
-            [0, 2],
+            token_indices_to_select,
             :,
         ]
 
         # Move the hidden states to the CPU and convert them to a numpy array
-        only_operand_hidden_states_np = only_operand_hidden_states.detach().cpu().numpy()
+        only_restricted_tokens_hidden_states_np = only_restricted_tokens_hidden_states.detach().cpu().numpy()
         # Make this into a list of all the 128-dimensional hidden states:
-        # I.e., convert the shape from (512, 2, 128) to (512 * 2, 128)
-        only_operand_hidden_states_reshaped_np = only_operand_hidden_states_np.reshape(
+        # I.e., convert the shape from (512, 2 or 4, 128) to (512 * (2 or 4), 128)
+        only_restricted_tokens_hidden_states_reshaped_np = only_restricted_tokens_hidden_states_np.reshape(
             -1,
-            only_operand_hidden_states_np.shape[-1],
+            only_restricted_tokens_hidden_states_np.shape[-1],
         )
         # Turn this into a list of 128-dimensional hidden states:
-        only_operand_hidden_states_list = only_operand_hidden_states_reshaped_np.tolist()
+        only_restricted_tokens_hidden_states_list = only_restricted_tokens_hidden_states_reshaped_np.tolist()
         # Extend the list of hidden states with the new hidden states:
-        selected_hidden_states_list.extend(only_operand_hidden_states_list)
+        selected_hidden_states_list.extend(only_restricted_tokens_hidden_states_list)
 
         corresponding_input_x_np = (
             topo_input_x[
                 :,
-                [0, 2],
+                token_indices_to_select,
             ]
             .detach()
             .cpu()

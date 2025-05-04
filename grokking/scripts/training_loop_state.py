@@ -17,7 +17,6 @@ from grokking.logging.log_model_info import log_model_info
 from grokking.model_handling.count_trainable_parameters import count_trainable_parameters
 from grokking.scripts.dataset_for_topological_analysis import DatasetForTopologicalAnalysis
 from grokking.scripts.lr_scheduler_config import LRSchedulerConfig
-
 from grokking.typing.constants import LR_SCHEDULER_CLASS, MODEL_CLASS, OPTIMIZER_CLASS
 from grokking.typing.enums import Verbosity
 

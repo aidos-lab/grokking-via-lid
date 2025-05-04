@@ -143,8 +143,7 @@ def global_and_pointwise_local_estimates_computation(
 
         if verbosity >= Verbosity.NORMAL:
             logger.info(
-                "global_estimate_array_np:\n%s",
-                global_estimate_array_np,
+                msg=f"global_estimate_array_np:\n{global_estimate_array_np}",  # noqa: G004 - low overhead
             )
     else:
         if verbosity >= Verbosity.NORMAL:
