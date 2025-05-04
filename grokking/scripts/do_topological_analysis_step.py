@@ -112,7 +112,7 @@ def do_topological_analysis_step(
                     absolute_n_neighbors,
                 ) in tqdm(
                     local_estimates_parameters_combinations,
-                    desc=f"{step + 1 = }: Iterating over different parameters for local estimates.",
+                    desc=f"{step + 1 = }: Iterating over parameters for local estimates.",
                 ):
                     if verbosity >= Verbosity.NORMAL:
                         logger.info(

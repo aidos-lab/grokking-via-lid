@@ -36,8 +36,8 @@
                 // "train.optimizer.clip_grad_norm_max_norm=null",
                 "train.optimizer.clip_grad_norm_max_norm=1.0",
                 //
-                // "train.lr_scheduler.lr_scheduler_type=constant",
-                "train.lr_scheduler.lr_scheduler_type=linear",
+                "train.lr_scheduler.lr_scheduler_type=constant",
+                // "train.lr_scheduler.lr_scheduler_type=linear",
                 //
                 "train.save_checkpoints_every=10000",
                 "train.max_steps=20000", // <-- 20k steps for debugging learning rate scheduler
@@ -47,9 +47,11 @@
                 "topological_analysis.compute_estimates_every=1000", // <-- compute local estimates only in large intervals
                 //
                 // "topological_analysis.create_projection_plot_every=500", // <-- For debugging, create projection plots more regularly
-                "topological_analysis.create_projection_plot_every=10000",
+                "topological_analysis.create_projection_plot_every=2000",
+                // "topological_analysis.create_projection_plot_every=10000",
                 // "logging.training.create_plot_of_model_output_parameters_every=500", // <-- For debugging the logging function: Create plots more regularly
-                "logging.training.create_plot_of_model_output_parameters_every=10000",
+                "logging.training.create_plot_of_model_output_parameters_every=2000",
+                // "logging.training.create_plot_of_model_output_parameters_every=10000",
                 //
                 "wandb.use_wandb=true",
                 // "wandb.watch.log=gradients",
@@ -491,7 +493,9 @@
                 // "dataset.dataset_seed=46,47,48",
                 // "dataset.dataset_seed=49",
                 //
-                "dataset.frac_train=0.1,0.2,0.3,0.4,0.5", // <-- Different dataset portions
+                // "dataset.frac_train=0.5", // <-- Single choice for testing submission
+                // "dataset.frac_train=0.1,0.2,0.3,0.4,0.5", // <-- Different dataset portions
+                "dataset.frac_train=0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5", // <-- Different dataset portions (fine-grained)
                 //
                 "train.optimizer.weight_decay=0.01", // <-- Small weight decay
                 // "train.optimizer.eps=1e-8", // <-- eps=1e-8 is the default value in AdamW optimizer
@@ -512,10 +516,12 @@
                 "logging.training.create_plot_of_model_output_parameters_every=10000",
                 //
                 "topological_analysis.compute_estimates_every=500", // <-- compute local estimates only in large intervals
+                //
                 "topological_analysis.create_projection_plot_every=20000", // <-- create projection plot only in large intervals
                 //
                 "wandb.use_wandb=true",
-                "wandb.wandb_project=grokking_replica_HHU_Hilbert_HPC_runs_different_dataset_portions_long",
+                // "wandb.wandb_project=grokking_replica_HHU_Hilbert_HPC_runs_different_dataset_portions_long",
+                "wandb.wandb_project=grokking_replica_HHU_Hilbert_HPC_runs_different_dataset_portions_long_new_topological_analysis",
             ],
             "env": {
                 "PYTORCH_ENABLE_MPS_FALLBACK": "1"
