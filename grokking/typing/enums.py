@@ -69,6 +69,14 @@ class ArtificialNoiseMode(StrEnum):
     GAUSSIAN = auto()
 
 
+@unique
+class TokenRestrictionMode(StrEnum):
+    """Different modes for restricting to specific tokens."""
+
+    TAKE_ALL = auto()
+    RESTRICT_TO_OPERANDS = auto()
+
+
 # ==============================
 # Enums used for training
 # ==============================

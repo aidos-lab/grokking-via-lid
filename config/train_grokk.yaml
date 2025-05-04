@@ -49,6 +49,10 @@ topological_analysis:
   absolute_n_neighbors_choices:
   - 64
   - 128
+  token_restriction_mode_choices:
+  - restrict_to_operands
+  - take_all
+  make_copy_of_dataloader: true
 
 wandb:
   use_wandb: true
