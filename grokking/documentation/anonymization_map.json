@@ -6,5 +6,6 @@
     "Heinrich Heine University Dusseldorf": "[ANONYMIZED_INSTITUTION]",
     "hhu_hilbert": "cluster_backend",
     "Faculty of Mathematics and Natural Sciences": "[ANONYMIZED_FACULTY]",
-    "Computer Science Department": "[ANONYMIZED_DEPARTMENT]"
+    "Computer Science Department": "[ANONYMIZED_DEPARTMENT]",
+    "name = \"hhu\"": "name = \"[ANONYMIZED_tool.uv.index_NAME]\""
 }

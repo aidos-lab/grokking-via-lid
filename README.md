@@ -79,7 +79,7 @@ uv run grokking/scripts/train_grokk.py
 
 Running the above command should give curves like this (note the logarithmic scale on the x-axis).
 
-![Training and validation accuracy](figures/grokk.png)
+![Training and validation accuracy single run](figures/main_figure_accuracy.png)
 
 The `uv run` commands also accept command line arguments.
 So for example, for running the training with a larger training fraction of 50% and without wandb, you can run:
@@ -93,6 +93,17 @@ You can try different operations or learning and architectural hyperparameters b
 ### Experiments: Local Dimensions Predict Grokking
 
 TODO: Explain how to run the experiments in the paper.
+
+![Training and validation accuracy and local intrinsic dimension different training data fractions](figures/different_frac_train_grouped_for_5_seeds.png)
+
+The description of the local estimates contains all parameters used for its computation `"train.take_all.desc=twonn_samples=3000_zerovec=keep_dedup=array_deduplicator_noise=do_nothing.n-neighbors-mode=absolute_size_n-neighbors=64.mean"`:
+
+- `train`: Training set is used.
+- `take_all`: Take embedding vectors of all tokens in the input sequences.
+- `samples=3000`: Number of token vectors samples (N) to use for the local intrinsic dimension estimate.
+- `n-neighbors=64`: Number of neighbors (L) to use for the local intrinsic dimension estimate.
+
+Note: We provide scripts for creating the figures in the paper from the wandb logs as part of the Topo_LLM repository in `topollm/plotting/wandb_export/`.
 
 ## Acknowledgements
 
