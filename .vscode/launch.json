@@ -466,11 +466,11 @@
                 // "hydra/launcher=basic", // <-- Use this for local submission
                 "hydra/launcher=hpc_submission", // <-- Use this for HHU Hilbert HPC submission
                 // >> DSML nodes:
-                "hydra.launcher.queue=DSML",
-                "hydra.launcher.template=DSML",
+                // "hydra.launcher.queue=DSML",
+                // "hydra.launcher.template=DSML",
                 // >> GTX1080 nodes:
-                // "hydra.launcher.queue=CUDA",
-                // "hydra.launcher.template=GTX1080",
+                "hydra.launcher.queue=CUDA",
+                "hydra.launcher.template=GTX1080",
                 // >> RTX6000 nodes:
                 // "hydra.launcher.queue=CUDA",
                 // "hydra.launcher.template=RTX6000",
@@ -480,8 +480,8 @@
                 // Notes:
                 // - Walltime of 72:00:00 works on our DSML nodes.
                 // - In general, on HHU Hilbert HPC, there is a walltime limit for GPU jobs.
-                // "hydra.launcher.walltime=59:59:59",
-                "hydra.launcher.walltime=72:00:00", // <-- We choose to run the training for long enough so that we can get up to 500k global steps.
+                "hydra.launcher.walltime=59:59:59",
+                // "hydra.launcher.walltime=72:00:00", // <-- We choose to run the training for long enough so that we can get up to 500k global steps.
                 //    >> END: Hydra options
                 //
                 // "dataset=mod_multiply_dataset",
@@ -492,7 +492,8 @@
                 //
                 // "dataset.dataset_seed=42",
                 // "dataset.dataset_seed=43,44,45", // <-- Three different seeds
-                "dataset.dataset_seed=46,47",
+                // "dataset.dataset_seed=46,47",
+                "dataset.dataset_seed=48,49,50",
                 // "dataset.dataset_seed=48",
                 // "dataset.dataset_seed=46,47,48",
                 // "dataset.dataset_seed=49",
