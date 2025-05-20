@@ -59,7 +59,7 @@ uv run grokking/scripts/train_grokk.py
 
 Running the above command should give curves like this.
 
-![Training and validation accuracy](grokk.png)
+![Training and validation accuracy](figures/grokk.png)
 
 Some `uv run` commands are defined in the `pyproject.toml` file, which can be used as entry points to run the code.
 These also accept command line arguments, so for example, for running the training with a larger training fraction and without wandb, you can run:

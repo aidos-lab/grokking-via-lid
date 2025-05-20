@@ -1,7 +1,11 @@
 [project]
+authors = [
+    { name = "Benjamin Matthias Ruppik", email = "mail@ruppik.net" },
+    { name = "Julius von Rohrscheidt", email = "julius.rohrscheidt@helmholtz-muenchen.de" },
+]
 name = "grokking"
-version = "0.1.0"
-description = "Toy examples of grokking for small transformers on arithmetic tasks."
+version = "0.2.0"
+description = "Toy examples of grokking for small transformers on arithmetic tasks, and computation of topological local estimates."
 readme = "README.md"
 requires-python = "~=3.12"
 dependencies = [
@@ -97,9 +101,12 @@ include = ["grokking", "tests"]
 exclude = [
     "**/node_modules",
     "**/__pycache__",
+    ".venv",
     "data",
-    "hydra_output_dir",
-    "wandb_output_dir",
+    "outputs",
+    "outputs.backup.*",
+    "wandb",
+    "wandb.backup.*",
 ]
 ignore = ["src/oldstuff"]
 defineConstant = { DEBUG = true }

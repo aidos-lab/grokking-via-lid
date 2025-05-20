@@ -36,6 +36,7 @@ WANDB_OUTPUT_DIR_PATH="${!THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME}/wandb"
 
 WANDB_PROJECT_NAMES=(
   "grokking_replica"
+  "grokking_replica_HHU_Hilbert_HPC_runs_different_dataset_portions_long_large_p_new_topological_analysis"
   "grokking_replica_HHU_Hilbert_HPC_runs_different_dataset_portions_long_new_topological_analysis"
   "grokking_replica_HHU_Hilbert_HPC_runs_different_dataset_portions_long"
   "grokking_replica_HHU_Hilbert_HPC_runs_different_operations_and_p_values_long_with_regularization"
