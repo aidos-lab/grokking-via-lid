@@ -10,8 +10,8 @@ This has been extended to allow the computation of topological local estimates o
 1. Clone the repository, and move into the directory:
 
 ```bash
-git clone https://github.com/ben300694/grokking-private
-cd grokking-private/
+git clone [REPOSITORY_URL] grokking
+cd grokking/
 ```
 
 1. This package works with `uv`. If you already have `uv` installed, you can create a new environment as follows:
@@ -39,17 +39,19 @@ Type "help", "copyright", "credits" or "license" for more information.
 ## Project-specific setup
 
 1. Set the correct environment variables used in the project config.
-Edit the script `grokking/scripts/setup_environment.sh` with the correct paths and run it once.
+Edit the script `grokking/setup/setup_environment.sh` with the correct paths and run it once.
 
 ```bash
-./grokking/scripts/setup_environment.sh
+./grokking/setup/setup_environment.sh
 ```
 
 1. If required, e.g. when running jobs on the HHU Hilbert HPC cluster, set the correct environment variables in the `.env` file in the project root directory.
 
 1. For setting up the repository to support job submissions to the HHU Hilbert HPC, follow the instructions here: [https://github.com/carelvniekerk/Hydra-HPC-Launcher].
 
-## Running the code
+## Usage
+
+### General instructions to run the code
 
 To roughly re-create Figure 1 in the paper run:
 
@@ -73,3 +75,7 @@ This package uses [Hydra](https://hydra.cc/docs/intro) to handle the configs (se
 
 Training uses [Weights And Biases](https://wandb.ai/home) by default to generate plots in realtime.
 If you would not like to use wandb, just set `wandb.use_wandb=False` in `config/train_grokk.yaml` or as an argument when calling `train_grokk.py`
+
+### Experiments: Local Dimensions Predict Grokking
+
+TODO: Explain how to run the experiments in the paper.
