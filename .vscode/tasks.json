@@ -5,7 +5,7 @@
     "tasks": [
         {
             "label": "Local - rsync from HPC cluster to local - (LARGE) - Full 'outputs' directory",
-            "command": "grokking/experiments/sync_data/rsync_selected_directories_from_hpc_cluster.sh --folders 'outputs/'",
+            "command": "./grokking/experiments/sync_data/rsync_selected_directories_from_hpc_cluster.sh --folders 'outputs/'",
             "type": "shell",
             "group": {
                 "kind": "build",
@@ -20,7 +20,7 @@
         // START Weights and Biases related tasks (wandb)
         {
             "label": "Local - rsync from HPC cluster to local - (LARGE) - Full 'wandb' directory",
-            "command": "grokking/experiments/sync_data/rsync_selected_directories_from_hpc_cluster.sh --folders 'wandb/'",
+            "command": "./grokking/experiments/sync_data/rsync_selected_directories_from_hpc_cluster.sh --folders 'wandb/'",
             "type": "shell",
             "group": {
                 "kind": "build",
@@ -34,7 +34,7 @@
         },
         {
             "label": "wandb - sync offline wandb runs to wandb cloud",
-            "command": "grokking/experiments/sync_data/sync_wandb_runs.sh",
+            "command": "./grokking/experiments/sync_data/sync_wandb_runs.sh",
             "type": "shell",
             "group": {
                 "kind": "build",
