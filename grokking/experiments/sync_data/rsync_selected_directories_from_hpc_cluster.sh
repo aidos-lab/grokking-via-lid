@@ -22,12 +22,11 @@ usage() {
 # # # # # # # # # # # # # # # # # # # # # # # # #
 # Default values
 DRY_RUN_FLAG=""
-REMOTE_HOST="HilbertStorage"
 SELECTED_SUBFOLDERS_LIST=()
 
 # Name of the environment variables holding the repository base path
+# Note: REMOTE_THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME is loaded from the .env file
 THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME="GROKKING_REPOSITORY_BASE_PATH"
-REMOTE_THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME="HILBERT_${THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME}"
 
 # # # # # # # # # # # # # # # # # # # # # # # # #
 # Parse command-line options
@@ -96,7 +95,7 @@ echo ">>> Variables describing the local setup:"
 echo ">>> THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME=${THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME}"
 echo ">>> ${THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME}=${!THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME}"
 echo ""
-echo ">>> Variables describing the remote setup:"
+echo ">>> Variables describing the remote setup (loaded from .env file):"
 echo ">>> REMOTE_HOST=${REMOTE_HOST}"
 echo ">>> REMOTE_THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME=${REMOTE_THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME}"
 echo ">>> ${REMOTE_THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME}=${!REMOTE_THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME}"
