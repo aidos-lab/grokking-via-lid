@@ -1,4 +1,4 @@
-# Grokking Predicted via Local Intrinsic Dimensions of Contextual Language Models
+# Predicting Grokking via Local Intrinsic Dimensions of Contextual Language Models
 
 *Grokking* is the phenomenon where a machine learning model trained on a small dataset learns to generalize well beyond the training set after a long period of overfitting.
 We demonstrate that the grokking phenomenon can be predicted by the local intrinsic dimension of the model's hidden states.
@@ -51,15 +51,15 @@ Edit the script `grokking/setup/setup_environment.sh` with the correct paths and
 ./grokking/setup/setup_environment.sh
 ```
 
-1. If required, e.g. when planning to run jobs on a cluster via a custom hydra launcher, set the correct environment variables in the `.env` file in the project root directory.
+1. (Optional) If required, e.g. when planning to run jobs on a cluster via a custom hydra launcher, set the correct environment variables in the `.env` file in the project root directory.
 
-1. For setting up the repository to support job submissions to a cluster using a Hydra multi-run launcher, follow the instructions here: [https://github.com/carelvniekerk/Hydra-HPC-Launcher].
+1. (Optional) For setting up the repository to support job submissions to a cluster using a Hydra multi-run launcher, follow the instructions here: [https://github.com/carelvniekerk/Hydra-HPC-Launcher].
 
 ## Usage
 
 We define `uv run` commands in the `pyproject.toml` file, which can be used as entry points to run the code.
 
-The training script uses [Weights And Biases](https://wandb.ai/home) by default to generate plots in realtime.
+The training script uses [Weights And Biases](https://wandb.ai/home) (wandb) by default to generate plots in realtime.
 If you would not like to use wandb, just set `wandb.use_wandb=False` in `config/train_grokk.yaml` or as an argument when calling `train_grokk.py`.
 In our modified version of the repository, this includes:
 
