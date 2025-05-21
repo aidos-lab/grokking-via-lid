@@ -51,7 +51,7 @@ Edit the script `grokking/setup/setup_environment.sh` with the correct paths and
 ./grokking/setup/setup_environment.sh
 ```
 
-1. (Optional) If required, e.g. when planning to run jobs on a cluster via a custom hydra launcher, set the correct environment variables in the `.env` file in the project root directory.
+1. (Optional) If required, e.g. when planning to run jobs on a cluster via a custom Hydra launcher, set the correct environment variables in the `.env` file in the project root directory.
 
 1. (Optional) For setting up the repository to support job submissions to a cluster using a Hydra multi-run launcher, follow the instructions here: [https://github.com/carelvniekerk/Hydra-HPC-Launcher].
 
@@ -74,7 +74,7 @@ This can be controlled via the `topological_analysis.compute_estimates_every=500
 To roughly re-create Figure 1 in the original grokking paper run:
 
 ```bash
-uv run grokking/scripts/train_grokk.py
+uv run train_grokk
 ```
 
 Running the above command should give curves like this (note the logarithmic scale on the x-axis).
