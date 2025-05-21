@@ -53,7 +53,7 @@ Edit the script `grokking/setup/setup_environment.sh` with the correct paths and
 
 1. (Optional) If required, e.g. when planning to run jobs on a cluster via a custom Hydra launcher, set the correct environment variables in the `.env` file in the project root directory.
 
-1. (Optional) For setting up the repository to support job submissions to a cluster using a Hydra multi-run launcher, follow the instructions here: [https://github.com/carelvniekerk/Hydra-HPC-Launcher].
+1. (Optional) For setting up the repository to support job submissions to a cluster using a Hydra multi-run launcher, follow the instructions here: [[ANONYMIZED_HYDRA_HPC_LAUNCHER_LINK]].
 
 ## Usage
 

@@ -8,5 +8,6 @@
     "Faculty of Mathematics and Natural Sciences": "[ANONYMIZED_FACULTY]",
     "Computer Science Department": "[ANONYMIZED_DEPARTMENT]",
     "name = \"hhu\"": "name = \"[ANONYMIZED_tool.uv.index_NAME]\"",
+    "http://pypi.repo.test.hhu.de/simple/": "[ANONYMIZED_PYPI_REPO]",
     "https://github.com/carelvniekerk/Hydra-HPC-Launcher": "[ANONYMIZED_HYDRA_HPC_LAUNCHER_LINK]"
 }

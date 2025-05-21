@@ -2,6 +2,7 @@
 
 import json
 import pathlib
+import pprint
 import re
 
 
@@ -87,6 +88,10 @@ def main() -> None:
     replacements: dict[str, str] = load_replacements(
         mapping_path=mapping_path,
     )
+    print(  # noqa: T201 - we want this script to print
+        f"Loaded replacements:{pprint.pformat(replacements)}",
+    )
+
     process_repo(
         root=repo_root,
         replacements=replacements,

@@ -1,7 +1,7 @@
 [project]
 authors = [
-    { name = "Benjamin Matthias Ruppik", email = "mail@ruppik.net" },
-    { name = "Julius von Rohrscheidt", email = "julius.rohrscheidt@helmholtz-muenchen.de" },
+    { name = "AUTHOR_1", email = "author1@example.com" },
+    { name = "AUTHOR_2", email = "author2@example.com" },
 ]
 name = "grokking"
 version = "0.2.0"
@@ -67,8 +67,8 @@ train_grokk = "grokking.scripts.train_grokk:main"
 # and before the package is released.
 #
 # [[tool.uv.index]]
-# name = "hhu"
-# url = "http://pypi.repo.test.hhu.de/simple/"
+# name = "[ANONYMIZED_tool.uv.index_NAME]"
+# url = "[ANONYMIZED_PYPI_REPO]"
 # default = true
 
 [build-system]
