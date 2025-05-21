@@ -109,7 +109,7 @@ From the wandb logs, you can generate plots like the following, which group the 
 The description of the local estimates contains the parameters used for its computation `"train.take_all.desc=twonn_samples=3000_zerovec=keep_dedup=array_deduplicator_noise=do_nothing.n-neighbors-mode=absolute_size_n-neighbors=64.mean"`:
 
 - `train`: Training set is used.
-- `take_all`: Take embedding vectors of all tokens in the input sequences.
+- `take_all`: Sample from all embedding vectors of all tokens in the input sequences (i.e., include operation token "o" and equality token "="). We always sample from all input sequences (M).
 - `samples=3000`: Number of token vectors samples (N) to use for the local intrinsic dimension estimate.
 - `n-neighbors=64`: Number of neighbors (L) to use for the local intrinsic dimension estimate.
 - `mean`: Log the mean of the local intrinsic dimension estimates over all token samples.
