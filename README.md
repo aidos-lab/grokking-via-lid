@@ -92,11 +92,21 @@ You can try different operations or learning and architectural hyperparameters b
 
 ### Experiments: Local Dimensions Predict Grokking
 
-TODO: Explain how to run the experiments in the paper.
+To reproduce the results in our paper, which compares the onset of grokking with the timing of the drop in local intrinsic dimension, you can run the following command:
+
+```bash
+grokking/experiments/run_with_multiple_dataset.frac_train.sh --launcher basic
+```
+
+This will run the training with different fractions of training data (0.1, 0.2, 0.3, 0.4, 0.5) for multiple seeds, and save the results in wandb logs.
+Note that this will take a long time to run, so you may want to run it on a cluster.
+We provide the  `--launcher hpc` option together with a Hydra launcher to run the jobs on a cluster.
+
+From the wandb logs, you can generate plots like the following, which group the results by training fraction.
 
 ![Training and validation accuracy and local intrinsic dimension different training data fractions](figures/different_frac_train_grouped_for_5_seeds.png)
 
-The description of the local estimates contains all parameters used for its computation `"train.take_all.desc=twonn_samples=3000_zerovec=keep_dedup=array_deduplicator_noise=do_nothing.n-neighbors-mode=absolute_size_n-neighbors=64.mean"`:
+The description of the local estimates contains the parameters used for its computation `"train.take_all.desc=twonn_samples=3000_zerovec=keep_dedup=array_deduplicator_noise=do_nothing.n-neighbors-mode=absolute_size_n-neighbors=64.mean"`:
 
 - `train`: Training set is used.
 - `take_all`: Take embedding vectors of all tokens in the input sequences.
