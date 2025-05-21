@@ -1,18 +1,23 @@
-import re
+"""Anonymize sensitive information in a repository."""
+
 import json
-from pathlib import Path
+import pathlib
+import re
 
 
 def load_replacements(
-    mapping_path: Path,
+    mapping_path: pathlib.Path,
 ) -> dict[str, str]:
     """Load anonymization replacements from a JSON file."""
-    with mapping_path.open("r", encoding="utf-8") as f:
+    with mapping_path.open(
+        mode="r",
+        encoding="utf-8",
+    ) as f:
         return json.load(f)
 
 
 def anonymize_file(
-    filepath: Path,
+    filepath: pathlib.Path,
     replacements: dict[str, str],
 ) -> None:
     """Replace sensitive info in a file with anonymized placeholders."""
@@ -29,11 +34,12 @@ def anonymize_file(
 
 
 def process_repo(
-    root: Path,
+    root: pathlib.Path,
     replacements: dict[str, str],
     exclude_dirs: set[str] | None = None,
     exclude_files: set[str] | None = None,
 ) -> None:
+    """Recursively anonymize files in a repository."""
     if exclude_dirs is None:
         exclude_dirs = {".git", ".venv", "data", "outputs", "wandb"}
 
@@ -48,24 +54,50 @@ def process_repo(
             continue
         # Skip files in excluded directories or hidden files/folders
         if any(part.startswith(".") for part in filepath.parts):
-            print(f"Skipping hidden file: {filepath}")
+            print(  # noqa: T201 - we want this script to print
+                f"Skipping hidden file: {filepath}",
+            )
             continue
         if any(part in exclude_dirs for part in filepath.parts):
-            print(f"Skipping excluded directory: {filepath}")
+            print(  # noqa: T201 - we want this script to print
+                f"Skipping excluded directory: {filepath}",
+            )
             continue
         if filepath.name in exclude_files:
-            print(f"Skipping excluded file: {filepath}")
+            print(  # noqa: T201 - we want this script to print
+                f"Skipping excluded file: {filepath}",
+            )
             continue
 
-        anonymize_file(filepath, replacements)
+        anonymize_file(
+            filepath=filepath,
+            replacements=replacements,
+        )
 
 
-if __name__ == "__main__":
-    repo_root = Path(__file__).parent.parent
-    mapping_path = repo_root / "anonymization_map.json"
-    replacements = load_replacements(mapping_path)
-    process_repo(repo_root, replacements)
+def main() -> None:
+    """Anonymize a repository."""
+    repo_root: pathlib.Path = pathlib.Path(__file__).parent.parent.parent
+    mapping_path: pathlib.Path = repo_root / "grokking" / "documentation" / "anonymization_map.json"
+
+    print(  # noqa: T201 - we want this script to print
+        f"Anonymizing repository at {repo_root=} using mapping file {mapping_path=}",
+    )
+
+    replacements: dict[str, str] = load_replacements(
+        mapping_path=mapping_path,
+    )
+    process_repo(
+        root=repo_root,
+        replacements=replacements,
+        exclude_dirs=None,
+        exclude_files=None,
+    )
 
     print(  # noqa: T201 - we want this script to print
         "Anonymization complete.",
     )
+
+
+if __name__ == "__main__":
+    main()
