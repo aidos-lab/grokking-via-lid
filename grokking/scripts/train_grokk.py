@@ -52,7 +52,7 @@ from grokking.scripts.training_loop_state import TrainingLoopState
 from grokking.typing.constants import MODEL_CLASS, OPTIMIZER_CLASS
 from grokking.typing.enums import Verbosity
 
-# Increase the wandb service wait time to prevent errors on HHU Hilbert.
+# Increase the wandb service wait time to prevent errors on HPC cluster.
 # https://github.com/wandb/wandb/issues/5214
 os.environ["WANDB__SERVICE_WAIT"] = "300"
 

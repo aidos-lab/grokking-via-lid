@@ -61,9 +61,9 @@ dependencies = [
 train_grokk = "grokking.scripts.train_grokk:main"
 
 # Note: 
-# The following section is needed on the HHU Hilbert HPC cluster to use the PyPI mirror,
-# since we do not have internet access on the cluster.
-# This should be removed when using the package outside of the cluster,
+# The following section is needed on certain HPC clusters to use a PyPI mirror,
+# since we might not have unrestricted internet access on the cluster.
+# This section should be removed when using the package outside of the cluster,
 # and before the package is released.
 #
 # [[tool.uv.index]]

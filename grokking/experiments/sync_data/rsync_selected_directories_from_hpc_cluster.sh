@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # # # # # # # # # # # # # # # # # # # # # # # # #
-# This is a general script for syncing data from HHU Hilbert server to local machine.
+# This is a general script for syncing data from the HPC cluster to local machine.
 #
 # You can specify the list of subfolders to sync using the --folders option.
 # You can also specify a file containing the list of subfolders to sync using the --file option.
 #
 # > Example calls:
 #
-# ./rsync_selected_directories_from_hhu_hilbert.sh --dry-run --folders "outputs/" "wandb/"
+# ./rsync_selected_directories_from_hpc_cluster.sh --dry-run --folders "outputs/" "wandb/"
 #
 # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -22,12 +22,11 @@ usage() {
 # # # # # # # # # # # # # # # # # # # # # # # # #
 # Default values
 DRY_RUN_FLAG=""
-REMOTE_HOST="HilbertStorage"
 SELECTED_SUBFOLDERS_LIST=()
 
 # Name of the environment variables holding the repository base path
+# Note: REMOTE_THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME is loaded from the .env file
 THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME="GROKKING_REPOSITORY_BASE_PATH"
-REMOTE_THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME="HILBERT_${THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME}"
 
 # # # # # # # # # # # # # # # # # # # # # # # # #
 # Parse command-line options
@@ -96,7 +95,7 @@ echo ">>> Variables describing the local setup:"
 echo ">>> THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME=${THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME}"
 echo ">>> ${THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME}=${!THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME}"
 echo ""
-echo ">>> Variables describing the remote setup:"
+echo ">>> Variables describing the remote setup (loaded from .env file):"
 echo ">>> REMOTE_HOST=${REMOTE_HOST}"
 echo ">>> REMOTE_THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME=${REMOTE_THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME}"
 echo ">>> ${REMOTE_THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME}=${!REMOTE_THIS_REPOSITORY_BASE_PATH_ENV_VAR_NAME}"
@@ -129,7 +128,7 @@ for SELECTED_SUBFOLDER in "${SELECTED_SUBFOLDERS_LIST[@]}"; do
 
     # ========================
 
-    echo ">>> Syncing data from HHU Hilbert server to local machine ..."
+    echo ">>> Syncing data from HPC cluster server to local machine ..."
     echo ">>> SOURCE_DIR=$SOURCE_DIR"
     echo ">>> TARGET_DIR=$TARGET_DIR"
 
