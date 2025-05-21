@@ -102,6 +102,7 @@ The description of the local estimates contains all parameters used for its comp
 - `take_all`: Take embedding vectors of all tokens in the input sequences.
 - `samples=3000`: Number of token vectors samples (N) to use for the local intrinsic dimension estimate.
 - `n-neighbors=64`: Number of neighbors (L) to use for the local intrinsic dimension estimate.
+- `mean`: Log the mean of the local intrinsic dimension estimates over all token samples.
 
 Note: We provide scripts for creating the figures in the paper from the wandb logs as part of the Topo_LLM repository in `topollm/plotting/wandb_export/`.
 
