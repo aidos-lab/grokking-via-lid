@@ -212,7 +212,9 @@ def do_topological_analysis_step(
                                 msg="Logged local estimates results to wandb.",
                             )
 
-                    # TODO: Save the local estimates results to a file
+                    # # # #
+                    # Note:
+                    # - If you want to save the local estimates results to a file, this would be the place to do it.
 
                     # # # #
                     # Optional plotting
