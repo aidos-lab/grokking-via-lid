@@ -27,7 +27,7 @@
                 "dataset.dataset_seed=42",
                 //
                 "train.load_checkpoint_from_dir=null", // <-- Train from scratch if no checkpoint dir is given (null corresponds to None in hydra)
-                // "train.load_checkpoint_from_dir='outputs/run/train_grokk/2025-04-24/14-48-17.709719/checkpoints/step=799'", // <-- Load from checkpoint dir
+                // "train.load_checkpoint_from_dir='outputs/run/train_grokk/2025-04-24/14-48-17.709719/checkpoints/step=799'", // <-- Example: Load from checkpoint dir
                 //
                 // "train.optimizer.weight_decay=0.0", // <-- No weight decay
                 "train.optimizer.weight_decay=0.01", // <-- Regular weight decay
@@ -97,7 +97,7 @@
                 "dataset.frac_train=0.4",
                 //
                 "train.load_checkpoint_from_dir=null", // <-- Train from scratch if no checkpoint dir is given (null corresponds to None in hydra)
-                // "train.load_checkpoint_from_dir='outputs/run/train_grokk/2025-05-03/12-09-39.284931/checkpoints/step=2499'", // <-- Load from checkpoint dir
+                // "train.load_checkpoint_from_dir='outputs/run/train_grokk/2025-05-03/12-09-39.284931/checkpoints/step=2499'", // <-- Example: Load from checkpoint dir
                 //
                 "train.optimizer.weight_decay=0.01",
                 // "train.optimizer.eps=1e-8", // eps=1e-8 is the default value in AdamW optimizer
@@ -164,7 +164,7 @@
             "cwd": "${workspaceFolder}",
             "args": [
                 // "train.load_checkpoint_from_dir=null", // <-- Train from scratch if no checkpoint dir is given (null corresponds to None in hydra)
-                "train.load_checkpoint_from_dir='outputs/run/train_grokk/2025-04-23/11-52-38/checkpoints/step=300'", // <-- Load from checkpoint dir
+                "train.load_checkpoint_from_dir='outputs/run/train_grokk/2025-04-23/11-52-38/checkpoints/step=300'", // <-- Example: Load from checkpoint dir
                 //
                 "train.save_checkpoints_every=50", // <-- For debugging the saving function: Save checkpoints more regularly 
                 //
@@ -211,9 +211,6 @@
                 "--multirun",
                 "hydra/sweeper=basic",
                 "hydra/launcher=hpc_submission", // <-- Use this for HPC cluster submission
-                // >> DSML nodes:
-                "hydra.launcher.queue=DSML",
-                "hydra.launcher.template=DSML",
                 // >> GTX1080 nodes:
                 // "hydra.launcher.queue=CUDA",
                 // "hydra.launcher.template=GTX1080",
@@ -223,7 +220,7 @@
                 "hydra.launcher.memory=32",
                 "hydra.launcher.ncpus=2", // <-- Make sure not to use more than 2 CPUs per GPU on the GTX1080TI and RTX6000 nodes.
                 "hydra.launcher.ngpus=1",
-                "hydra.launcher.walltime=59:59:59", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
+                "hydra.launcher.walltime=59:59:59", // <-- We choose to run the training for long enough so that we can get up to 400k global steps.
                 //    >> END: Hydra options
                 //
                 "dataset.dataset_seed=42",
@@ -252,9 +249,6 @@
                 "hydra/sweeper=basic",
                 // "hydra/launcher=basic", // <-- Use this for local submission
                 "hydra/launcher=hpc_submission", // <-- Use this for HPC cluster submission
-                // >> DSML nodes:
-                // "hydra.launcher.queue=DSML",
-                // "hydra.launcher.template=DSML",
                 // >> GTX1080 nodes:
                 "hydra.launcher.queue=CUDA",
                 "hydra.launcher.template=GTX1080",
@@ -264,7 +258,7 @@
                 "hydra.launcher.memory=32",
                 "hydra.launcher.ncpus=2", // <-- Make sure not to use more than 2 CPUs per GPU on the GTX1080TI and RTX6000 nodes.
                 "hydra.launcher.ngpus=1",
-                "hydra.launcher.walltime=59:59:59", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
+                "hydra.launcher.walltime=59:59:59", // <-- We choose to run the training for long enough so that we can get up to 400k global steps.
                 //    >> END: Hydra options
                 //
                 "dataset.dataset_seed=42",
@@ -290,9 +284,6 @@
                 "hydra/sweeper=basic",
                 // "hydra/launcher=basic", // <-- Use this for local submission
                 "hydra/launcher=hpc_submission", // <-- Use this for HPC cluster submission
-                // >> DSML nodes:
-                // "hydra.launcher.queue=DSML",
-                // "hydra.launcher.template=DSML",
                 // >> GTX1080 nodes:
                 "hydra.launcher.queue=CUDA",
                 "hydra.launcher.template=GTX1080",
@@ -302,7 +293,7 @@
                 "hydra.launcher.memory=32",
                 "hydra.launcher.ncpus=2", // <-- Make sure not to use more than 2 CPUs per GPU on the GTX1080TI and RTX6000 nodes.
                 "hydra.launcher.ngpus=1",
-                "hydra.launcher.walltime=59:59:59", // <-- We choose to run the training for long enough so that we can get up to ... global steps.
+                "hydra.launcher.walltime=59:59:59", // <-- We choose to run the training for long enough so that we can get up to 400k global steps.
                 //    >> END: Hydra options
                 //
                 // "dataset.dataset_seed=42",
@@ -333,9 +324,6 @@
                 "hydra/sweeper=basic",
                 // "hydra/launcher=basic", // <-- Use this for local submission
                 "hydra/launcher=hpc_submission", // <-- Use this for HPC cluster submission
-                // >> DSML nodes:
-                "hydra.launcher.queue=DSML",
-                "hydra.launcher.template=DSML",
                 // >> GTX1080 nodes:
                 // "hydra.launcher.queue=CUDA",
                 // "hydra.launcher.template=GTX1080",
@@ -346,7 +334,7 @@
                 "hydra.launcher.ncpus=2", // <-- Make sure not to use more than 2 CPUs per GPU on the GTX1080TI and RTX6000 nodes.
                 "hydra.launcher.ngpus=1",
                 // Notes:
-                // - Walltime of 72:00:00 works on our DSML nodes.
+                // - Walltime of 72:00:00 works on our nodes.
                 // - In general, on HPC cluster, there is a walltime limit for GPU jobs.
                 "hydra.launcher.walltime=72:00:00", // <-- We choose to run the training for long enough so that we can get up to 500k global steps.
                 //    >> END: Hydra options
@@ -386,9 +374,6 @@
                 "hydra/sweeper=basic",
                 // "hydra/launcher=basic", // <-- Use this for local submission
                 "hydra/launcher=hpc_submission", // <-- Use this for HPC cluster submission
-                // >> DSML nodes:
-                "hydra.launcher.queue=DSML",
-                "hydra.launcher.template=DSML",
                 // >> GTX1080 nodes:
                 // "hydra.launcher.queue=CUDA",
                 // "hydra.launcher.template=GTX1080",
@@ -399,7 +384,7 @@
                 "hydra.launcher.ncpus=2", // <-- Make sure not to use more than 2 CPUs per GPU on the GTX1080TI and RTX6000 nodes.
                 "hydra.launcher.ngpus=1",
                 // Notes:
-                // - Walltime of 72:00:00 works on our DSML nodes.
+                // - Walltime of 72:00:00 works on our nodes.
                 // - In general, on HPC cluster, there is a walltime limit for GPU jobs.
                 "hydra.launcher.walltime=72:00:00", // <-- We choose to run the training for long enough so that we can get up to 500k global steps.
                 //    >> END: Hydra options
@@ -458,9 +443,6 @@
                 "hydra/sweeper=basic",
                 // "hydra/launcher=basic", // <-- Use this for local submission
                 "hydra/launcher=hpc_submission", // <-- Use this for HPC cluster submission
-                // >> DSML nodes:
-                // "hydra.launcher.queue=DSML",
-                // "hydra.launcher.template=DSML",
                 // >> GTX1080 nodes:
                 "hydra.launcher.queue=CUDA",
                 "hydra.launcher.template=GTX1080",
@@ -471,7 +453,7 @@
                 "hydra.launcher.ncpus=2", // <-- Make sure not to use more than 2 CPUs per GPU on the GTX1080TI and RTX6000 nodes.
                 "hydra.launcher.ngpus=1",
                 // Notes:
-                // - Walltime of 72:00:00 works on our DSML nodes.
+                // - Walltime of 72:00:00 works on our nodes.
                 // - In general, on HPC cluster, there is a walltime limit for GPU jobs.
                 "hydra.launcher.walltime=59:59:59",
                 // "hydra.launcher.walltime=72:00:00", // <-- We choose to run the training for long enough so that we can get up to 500k global steps.

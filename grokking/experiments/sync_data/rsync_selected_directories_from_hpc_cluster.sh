@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # # # # # # # # # # # # # # # # # # # # # # # # #
-# This is a general script for syncing data from HHU Hilbert server to local machine.
+# This is a general script for syncing data from the HPC cluster to local machine.
 #
 # You can specify the list of subfolders to sync using the --folders option.
 # You can also specify a file containing the list of subfolders to sync using the --file option.
 #
 # > Example calls:
 #
-# ./rsync_selected_directories_from_hhu_hilbert.sh --dry-run --folders "outputs/" "wandb/"
+# ./rsync_selected_directories_from_hpc_cluster.sh --dry-run --folders "outputs/" "wandb/"
 #
 # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -129,7 +129,7 @@ for SELECTED_SUBFOLDER in "${SELECTED_SUBFOLDERS_LIST[@]}"; do
 
     # ========================
 
-    echo ">>> Syncing data from HHU Hilbert server to local machine ..."
+    echo ">>> Syncing data from HPC cluster server to local machine ..."
     echo ">>> SOURCE_DIR=$SOURCE_DIR"
     echo ">>> TARGET_DIR=$TARGET_DIR"
 
