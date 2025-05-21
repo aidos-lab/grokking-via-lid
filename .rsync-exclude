@@ -21,13 +21,13 @@ __pycache__
 
 # # # # # # # # # # # # #
 # Large data directories
+#
+# Notes:
+# - Do NOT add a slash at the end of the lines where you do not want the symlink to be deleted on the remote machine.
 data/
 outputs/
 outputs.*
 outputs.backup.*
-
-# do NOT add a slash at the end of the next line, since then the symlink will be deleted on the remote machine:
-data/models/setsumbt_checkpoints
 
 # Log files
 logs/
