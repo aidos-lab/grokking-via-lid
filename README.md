@@ -45,7 +45,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 ## Project-specific setup
 
 1. Set the correct environment variables used in the project config.
-This step can be achieve by running the setup script in the `grokking/setup/` directory once.
+This step can be achieved by running the setup script in the `grokking/setup/` directory once.
 
 ```bash
 ./grokking/setup/setup_environment.sh
