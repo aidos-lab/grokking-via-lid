@@ -95,7 +95,7 @@ You can try different operations or learning and architectural hyperparameters b
 To reproduce the results in our paper, which compares the onset of grokking with the timing of the drop in local intrinsic dimension, you can run the following command:
 
 ```bash
-grokking/experiments/run_with_multiple_dataset.frac_train.sh --launcher basic
+./grokking/experiments/run_with_multiple_dataset.frac_train.sh --launcher basic
 ```
 
 This will run the training with different fractions of training data (0.1, 0.2, 0.3, 0.4, 0.5) for multiple seeds, and save the results in wandb logs.
