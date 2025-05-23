@@ -45,7 +45,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 ## Project-specific setup
 
 1. Set the correct environment variables used in the project config.
-Edit the script `grokking/setup/setup_environment.sh` with the correct paths and run it once.
+This step can be achieved by running the setup script in the `grokking/setup/` directory once.
 
 ```bash
 ./grokking/setup/setup_environment.sh
@@ -53,7 +53,7 @@ Edit the script `grokking/setup/setup_environment.sh` with the correct paths and
 
 1. (Optional) If required, e.g. when planning to run jobs on a cluster via a custom Hydra launcher, set the correct environment variables in the `.env` file in the project root directory.
 
-1. (Optional) For setting up the repository to support job submissions to a cluster using a Hydra multi-run launcher, follow the instructions here: [https://github.com/carelvniekerk/Hydra-HPC-Launcher].
+1. (Optional) For setting up the repository to support job submissions to a cluster using a Hydra multi-run launcher, follow the instructions here: [[ANONYMIZED_HYDRA_HPC_LAUNCHER_LINK]].
 
 ## Usage
 
@@ -95,7 +95,7 @@ You can try different operations or learning and architectural hyperparameters b
 To reproduce the results in our paper, which compares the onset of grokking with the timing of the drop in local intrinsic dimension, you can run the following command:
 
 ```bash
-grokking/experiments/run_with_multiple_dataset.frac_train.sh --launcher basic
+./grokking/experiments/run_with_multiple_dataset.frac_train.sh --launcher basic
 ```
 
 This will run the training with different fractions of training data (0.1, 0.2, 0.3, 0.4, 0.5) for multiple seeds, and save the results in wandb logs.
