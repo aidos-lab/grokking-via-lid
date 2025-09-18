@@ -1,7 +1,7 @@
-# Predicting Grokking via Local Intrinsic Dimensions of Contextual Language Models
+# Detecting Grokking via Local Intrinsic Dimensions of Contextual Language Models
 
 *Grokking* is the phenomenon where a machine learning model trained on a small dataset learns to generalize well beyond the training set after a long period of overfitting.
-We demonstrate that the grokking phenomenon can be predicted by the local intrinsic dimension of the model's hidden states.
+We demonstrate that the grokking phenomenon can be detected by a change of the local intrinsic dimension (LID) of the model's hidden states.
 
 This repository is based on an unofficial re-implementation of the paper [Grokking: Generalization Beyond Overfitting on Small Algorithmic Datasets](https://arxiv.org/abs/2201.02177) by Power et al.
 The original codebase that we base our work on was written by Charlie Snell.
@@ -90,7 +90,7 @@ uv run train_grokk dataset.frac_train=0.5 wandb.use_wandb=false
 
 You can try different operations or learning and architectural hyperparameters by modifying configurations in the `config/` directory.
 
-### Experiments: Local Dimensions Predict Grokking
+### Experiments: Local Dimensions Detect Grokking
 
 To reproduce the results in our paper, which compares the onset of grokking with the timing of the drop in local intrinsic dimension, you can run the following command:
 
@@ -114,7 +114,26 @@ The description of the local estimates contains the parameters used for its comp
 - `n-neighbors=64`: Number of neighbors (L) to use for the local intrinsic dimension estimate.
 - `mean`: Log the mean of the local intrinsic dimension estimates over all token samples.
 
-Note: We provide scripts for creating the figures in the paper from the wandb logs as part of the Topo_LLM repository in `topollm/plotting/wandb_export/`.
+Note: We provide scripts for creating the figures in the paper from the wandb logs as part of the [Topo_LLM repository](https://github.com/aidos-lab/Topo_LLM) in `topollm/plotting/wandb_export/`.
+
+## References
+
+Further discussion of the results can be found in our paper [Less is More: Local Intrinsic Dimensions of Contextual Language Models](https://arxiv.org/abs/2506.01034).
+
+```tex
+@misc{ruppik2025morelocalintrinsicdimensions,
+      title={Less is More: Local Intrinsic Dimensions of Contextual Language Models}, 
+      author={Benjamin Matthias Ruppik and Julius von Rohrscheidt and Carel van Niekerk and Michael Heck and Renato Vukovic and Shutong Feng and Hsien-chin Lin and Nurul Lubis and Bastian Rieck and Marcus Zibrowius and Milica Gašić},
+      year={2025},
+      eprint={2506.01034},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2506.01034},
+      note={To appear in NeurIPS 2025},
+}
+```
+
+- [Topo_LLM repository](https://github.com/aidos-lab/Topo_LLM)
 
 ## Acknowledgements
 
