@@ -1,10 +1,10 @@
 [project]
 authors = [
-    { name = "AUTHOR_1", email = "author1@example.com" },
-    { name = "AUTHOR_2", email = "author2@example.com" },
+    { name = "Benjamin Matthias Ruppik", email = "mail@ruppik.net" },
+    { name = "Julius von Rohrscheidt", email = "julius.rohrscheidt@helmholtz-munich.de" },
 ]
 name = "grokking"
-version = "0.2.0"
+version = "0.3.0"
 description = "Toy examples of grokking for small transformers on arithmetic tasks, and computation of topological local estimates."
 readme = "README.md"
 requires-python = ">=3.12.0,<3.13"

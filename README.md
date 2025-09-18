@@ -53,18 +53,19 @@ This step can be achieved by running the setup script in the `grokking/setup/` d
 
 1. (Optional) If required, e.g. when planning to run jobs on a cluster via a custom Hydra launcher, set the correct environment variables in the `.env` file in the project root directory.
 
-1. (Optional) For setting up the repository to support job submissions to a cluster using a Hydra multi-run launcher, follow the instructions here: [[ANONYMIZED_HYDRA_HPC_LAUNCHER_LINK]].
+1. (Optional) For setting up the repository to support job submissions to a cluster using a Hydra multi-run launcher, follow the instructions in the [Hydra-HPC-Launcher repository](https://github.com/carelvniekerk/Hydra-HPC-Launcher).
 
 ## Usage
 
 We define `uv run` commands in the `pyproject.toml` file, which can be used as entry points to run the code.
 
 The training script uses [Weights And Biases](https://wandb.ai/home) (wandb) by default to generate plots in realtime.
-If you would not like to use wandb, just set `wandb.use_wandb=False` in `config/train_grokk.yaml` or as an argument when calling `train_grokk.py`.
-In our modified version of the repository, this includes:
+If you want to disable wandb, just set `wandb.use_wandb=False` in `config/train_grokk.yaml` or as an argument when calling `train_grokk.py`.
 
-- Training and validation loss curves and accuracy curves
-- Topological local estimates of the hidden states during training (with selected hyperparameters)
+In our modified version of the repository, the logging includes:
+
+- Training and validation loss curves and accuracy curves;
+- Topological local estimates of the hidden states during training (with selected hyperparameters).
 
 Note that since the computation of the local intrinsic dimension is expensive, we only compute it in certain intervals during training.
 This can be controlled via the `topological_analysis.compute_estimates_every=500` parameter in the `config/train_grokk.yaml` file.
