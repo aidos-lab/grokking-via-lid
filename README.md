@@ -5,7 +5,7 @@ We demonstrate that the grokking phenomenon can be detected by a change of the l
 
 This repository is based on an unofficial re-implementation of the paper [Grokking: Generalization Beyond Overfitting on Small Algorithmic Datasets](https://arxiv.org/abs/2201.02177) by Power et al.
 The original codebase that we base our work on was written by Charlie Snell.
-The code been extended to allow the computation of topological local estimates of the language model's hidden states during the training process.
+The code has been extended to allow the computation of topological local estimates of the language model's hidden states during the training process.
 
 This package uses [Hydra](https://hydra.cc/docs/intro) to handle the configuration.
 See the `Hydra` documentation or our description below to learn how to change configurations in the `config/` directory or via command line arguments.
@@ -28,7 +28,7 @@ uv sync
 ```
 
 1. Now, you can directly run the training script as indicated below via `uv run`.
-If you would like to use the package in another way, you can start a python interpreter in the environment:
+If you would like to use the package in another way, you can start a Python interpreter in the environment:
 
 ```bash
 uv run python3
@@ -51,7 +51,7 @@ This step can be achieved by running the setup script in the `grokking/setup/` d
 ./grokking/setup/setup_environment.sh
 ```
 
-1. (Optional) If required, e.g. when planning to run jobs on a cluster via a custom Hydra launcher, set the correct environment variables in the `.env` file in the project root directory.
+1. (Optional) If required, e.g., when planning to run jobs on a cluster via a custom Hydra launcher, set the correct environment variables in the `.env` file in the project root directory.
 
 1. (Optional) For setting up the repository to support job submissions to a cluster using a Hydra multi-run launcher, follow the instructions in the [Hydra-HPC-Launcher repository](https://github.com/carelvniekerk/Hydra-HPC-Launcher).
 
@@ -59,7 +59,7 @@ This step can be achieved by running the setup script in the `grokking/setup/` d
 
 We define `uv run` commands in the `pyproject.toml` file, which can be used as entry points to run the code.
 
-The training script uses [Weights And Biases](https://wandb.ai/home) (wandb) by default to generate plots in realtime.
+The training script uses [Weights And Biases](https://wandb.ai/home) (wandb) by default to generate plots in real-time.
 If you want to disable wandb, just set `wandb.use_wandb=False` in `config/train_grokk.yaml` or as an argument when calling `train_grokk.py`.
 
 In our modified version of the repository, the logging includes:
@@ -72,7 +72,7 @@ This can be controlled via the `topological_analysis.compute_estimates_every=500
 
 ### General instructions to run the code
 
-To roughly re-create Figure 1 in the original grokking paper run:
+To roughly re-create Figure 1 in the original Grokking paper run:
 
 ```bash
 uv run train_grokk
@@ -82,8 +82,8 @@ Running the above command should give curves like this (note the logarithmic sca
 
 ![Training and validation accuracy single run](figures/main_figure_accuracy.png)
 
-The `uv run` commands also accept command line arguments.
-So for example, for running the training with a larger training fraction of 50% and without wandb, you can run:
+The `uv run` commands also accept command-line arguments.
+So, for example, for running the training with a larger training fraction of 50% and without wandb, you can run:
 
 ```bash
 uv run train_grokk dataset.frac_train=0.5 wandb.use_wandb=false
@@ -107,7 +107,8 @@ From the wandb logs, you can generate plots like the following, which group the 
 
 ![Training and validation accuracy and local intrinsic dimension different training data fractions](figures/different_frac_train_grouped_for_5_seeds.png)
 
-The description of the local estimates contains the parameters used for its computation `"train.take_all.desc=twonn_samples=3000_zerovec=keep_dedup=array_deduplicator_noise=do_nothing.n-neighbors-mode=absolute_size_n-neighbors=64.mean"`:
+The description of the local estimates contains the parameters used for their computation: 
+`"train.take_all.desc=twonn_samples=3000_zerovec=keep_dedup=array_deduplicator_noise=do_nothing.n-neighbors-mode=absolute_size_n-neighbors=64.mean"`:
 
 - `train`: Training set is used.
 - `take_all`: Sample from all embedding vectors of all tokens in the input sequences (i.e., include operation token "o" and equality token "="). We always sample from all input sequences (M).
@@ -115,11 +116,11 @@ The description of the local estimates contains the parameters used for its comp
 - `n-neighbors=64`: Number of neighbors (L) to use for the local intrinsic dimension estimate.
 - `mean`: Log the mean of the local intrinsic dimension estimates over all token samples.
 
-Note: We provide scripts for creating the figures in the paper from the wandb logs as part of the [Topo_LLM repository](https://github.com/aidos-lab/Topo_LLM) in `topollm/plotting/wandb_export/`.
+Note: We provide scripts for creating the figures in the paper from the wandb logs as part of the [Topo_LLM repository](https://github.com/aidos-lab/Topo_LLM_public) in `topollm/plotting/wandb_export/`.
 
-## References
+## Citation
 
-Further discussion of the results can be found in our paper [Less is More: Local Intrinsic Dimensions of Contextual Language Models](https://arxiv.org/abs/2506.01034).
+Our paper [Less is More: Local Intrinsic Dimensions of Contextual Language Models](https://arxiv.org/abs/2506.01034) discusses the results further.
 
 ```tex
 @misc{ruppik2025morelocalintrinsicdimensions,
@@ -134,7 +135,7 @@ Further discussion of the results can be found in our paper [Less is More: Local
 }
 ```
 
-- [Topo_LLM repository](https://github.com/aidos-lab/Topo_LLM)
+- [Topo_LLM repository](https://github.com/aidos-lab/Topo_LLM_public)
 
 ## Acknowledgements
 
