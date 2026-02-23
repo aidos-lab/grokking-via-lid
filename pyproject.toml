@@ -13,6 +13,7 @@ dependencies = [
     "gitpython>=3.1.44",
     "hydra-core>=1.3.2",
     "hydra-joblib-launcher>=1.2.0",
+    "kaleido<0.2.1",                # Note: We need to add the explicit kaleido dependency since it is required for the image export, the '<1' restriction is needed to avoid the Google Chrome dependency which causes issues on the HPC cluster. The '<0.2.1' restriction is needed to avoid issues on macOS ARM.
     "matplotlib<3.10",              # Note: We need to add the explicit matplotlib dependency here since scikit-dimension needs this # This restriction is needed to avoid issues with the HPC cluster
     "numpy>=2.2.4,<2.3",            # This restriction is needed to avoid issues with the HPC cluster
     "omegaconf>=2.3.0",
