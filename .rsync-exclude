@@ -49,6 +49,6 @@ tmp_trainer/
 
 # Optional: Exclude the pyproject.toml to prevent overwriting the HPC pip configuration
 #
-pyproject.toml
+# pyproject.toml
 poetry.lock
 uv.lock

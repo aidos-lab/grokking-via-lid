@@ -9,49 +9,25 @@ description = "Toy examples of grokking for small transformers on arithmetic tas
 readme = "README.md"
 requires-python = ">=3.12.0,<3.13"
 dependencies = [
-    "antlr4-python3-runtime>=4.9.3",
-    "certifi>=2025.1.31",
-    "charset-normalizer>=3.4.1",
-    "click>=8.1.8",
-    "configparser>=7.2.0",
-    "docker-pycreds>=0.4.0",
-    "gitdb>=4.0.12",
+    "contourpy<1.3",                # This restriction is needed to avoid issues with the HPC cluster
     "gitpython>=3.1.44",
     "hydra-core>=1.3.2",
     "hydra-joblib-launcher>=1.2.0",
-    "hydra-zen>=0.14.0",
-    "idna>=3.10",
-    "kaleido<=0.2",
-    "matplotlib>=3.10.1",
-    "numpy>=2.2.4",
-    "olefile>=0.47",
+    "matplotlib<3.10",              # Note: We need to add the explicit matplotlib dependency here since scikit-dimension needs this # This restriction is needed to avoid issues with the HPC cluster
+    "numpy>=2.2.4,<2.3",            # This restriction is needed to avoid issues with the HPC cluster
     "omegaconf>=2.3.0",
-    "pandas>=2.2.3",
-    "pillow>=11.1.0",
+    "pandas>=2.2.3,<2.3",           # This restriction is needed to avoid issues with the HPC cluster
     "plotly>=6.0.1",
-    "promise>=2.3",
-    "protobuf>=5.29.4",
-    "psutil>=7.0.0",
     "python-dateutil>=2.9.0.post0",
     "python-dotenv>=1.1.0",
-    "pyyaml>=6.0.2",
-    "requests>=2.32.3",
     "rich>=14.0.0",
     "scikit-dimension>=0.3.4",
-    "scikit-learn>=1.6.1",
-    "sentry-sdk>=2.25.0",
-    "shortuuid>=1.0.13",
-    "six>=1.17.0",
-    "smmap>=5.0.2",
-    "subprocess32>=3.5.4",
-    "termcolor>=2.3.0",
-    "torch>=2.3,<2.4",               # This restriction is needed to avoid issues with the HPC cluster
+    "scikit-learn>=1.6.1,<1.7",     # This restriction is needed to avoid issues with the HPC cluster
+    "scipy<1.17",                   # This restriction is needed to avoid issues with the HPC cluster
+    "torch>=2.3,<2.4",              # This restriction is needed to avoid issues with the HPC cluster
     "tqdm>=4.67.1",
-    "transformers>=4.51.1",
-    "typing-extensions>=4.13.0",
-    "urllib3>=2.3.0",
-    "wandb>=0.19.8",
-    "yaspin>=3.1.0",
+    "transformers>=4.51.1,<5",      # This restriction is needed to avoid issues with the HPC cluster
+    "wandb>=0.19.8,<0.22",          # This restriction is needed to avoid issues with the HPC cluster
     "zarr>=3.0.6",
 ]
 
@@ -70,7 +46,7 @@ train_grokk = "grokking.scripts.train_grokk:main"
 # default = true
 
 [build-system]
-requires = ["uv_build>=0.8.6,<0.9.0"]
+requires = ["uv_build>=0.8.6"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
